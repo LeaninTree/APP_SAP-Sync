@@ -1,0 +1,17 @@
+"Represents a single warning or error response"
+type Response {
+    "The ID, Code or SKU of the item referenced"
+    code: String
+    "Additional details and actions required by the response"
+    message: String
+}
+
+"List of responses after the feed & sync are complete"
+type Warnings {
+    "Alerts, warnings & errors that are within the code and process itself"
+    itAlerts: [Response!]!
+    "Alerts, warnings & errors that involve definition updates"
+    attentionRequired: [Response!]!
+    "Alerts about status, image and product creation changes"
+    changeAlert: [Response!]!
+}
