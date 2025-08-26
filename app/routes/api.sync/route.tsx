@@ -102,6 +102,29 @@ export const action = async ({ request }: ActionFunctionArgs ) => {
 
     const productList: FormatedProduct[] = [];
 
+    const locationResponse = await admin.graphql(
+        `#graphql
+            query($identifier: LocationIdentifierInput!) {
+                location: locationByIdentifier(identifier: $identifier) {
+                    id
+                }
+            }
+        `,
+        {
+            variables: {
+                identifier: {
+                    customId: {
+                        namespace: "custom",
+                        key: "id",
+                        value: "elevationWarehouse"
+                    }
+                }
+            }
+        }
+    );
+    
+    const locationData = await locationResponse.json();
+
     const initialProductResponse = await admin.graphql(
         `#graphql
             query initialProducts($count: Int!) {
@@ -443,7 +466,7 @@ export const action = async ({ request }: ActionFunctionArgs ) => {
         });
     }
 
-    const responseData = gatherData(admin, productList, forceAI, currentDate, call24HoursAgo, imageDelay).then(result => {
+    const responseData = gatherData(admin, productList, forceAI, currentDate, call24HoursAgo, imageDelay, locationData.data.location.id).then(result => {
         const definitionErrors: Error[] = [];
 
         result.brandCache.forEach((obj: any, key: string) => {
@@ -507,7 +530,7 @@ export const action = async ({ request }: ActionFunctionArgs ) => {
     return new Response(JSON.stringify({return_value: resultData}));
 };
 
-async function gatherData(admin: AdminApiContextWithoutRest, productList: FormatedProduct[], forceAI: Boolean, callStartTime: Date, call24HoursAgo: Date, imageDelay: Date) {
+async function gatherData(admin: AdminApiContextWithoutRest, productList: FormatedProduct[], forceAI: Boolean, callStartTime: Date, call24HoursAgo: Date, imageDelay: Date, locationId: String) {
 
         let toneList: String[] = [];
 
@@ -1338,7 +1361,7 @@ async function gatherData(admin: AdminApiContextWithoutRest, productList: Format
                                 sku: variant.sku,
                                 metafields: variantMetafields,
                                 inventoryQuantities: [{
-                                    locationId: "gid://shopify/Location/71228096646", //TODO HAVE TO BE MANUALLY SET
+                                    locationId: locationId, 
                                     name: "available",
                                     quantity: variant.inventory
                                 }]

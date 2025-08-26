@@ -17,7 +17,8 @@ import {
   EmptySearchResult,
   AutoSelection,
   Combobox,
-  Banner
+  Banner,
+  ChoiceList
 } from "@shopify/polaris";
 import { useCallback, useState, useMemo, useEffect } from "react";
 import { authenticate } from "app/shopify.server";
@@ -1351,13 +1352,14 @@ export default function ProductPage() {
                                             value={productData.artist ? productData.artist : ""}
                                             autoComplete="off"
                                         />
-                                        <Select 
-                                            label="Customizable"
-                                            value={customizable}
-                                            options={customizableOptions}
-                                            onChange={(newValue) => setCustomizable(newValue)}
-                                        />
                                     </InlineGrid>
+                                    <ChoiceList
+                                        allowMultiple
+                                        title="Customizable"
+                                        choices={customizableOptions}
+                                        selected={customizable}
+                                        onChange={(newValue) => setCustomizable(newValue)}
+                                    />
                                     <Text variant="bodyLg" as="p" key="Col2-2-4">
                                         Processes
                                     </Text>
