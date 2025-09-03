@@ -1,17 +1,6 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { authenticate } from "app/shopify.server";
 
-interface ProductPreview {
-  id: string;
-  title: string;
-  imgUrl: string;
-  sku: string;
-  brand: string;
-  product: string;
-  d2cStatus: "DRAFT" | "ACTIVE" | "ARCHIVED" | string;
-  b2bStatus: "DRAFT" | "ACTIVE" | "ARCHIVED" | string;
-}
-
 interface Definition {
     id: string;
     name: string;
@@ -28,10 +17,10 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     const { admin } = await authenticate.admin(request);
     let reply: Reply = {};
 
-    if (params.definitionType === "tone") {
+    if (params.definitionType === "tone" || params.definitionType === "occasionName") {
         const response = await admin.graphql(
             `#graphql
-                query GetToneOptions($identifier: MetafieldDefinitionIdentifierInput!) {
+                query GetMetafieldOptions($identifier: MetafieldDefinitionIdentifierInput!) {
                     metafieldDefinition(identifier: $identifier) {
                         validations {
                             name
@@ -45,7 +34,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
                     identifier: {
                         ownerType: "PRODUCT",
                         namespace: "custom",
-                        key: "tone"
+                        key: params.definitionType === "tone" ? "tone" : "occasion"
                     }
                 }
             }
@@ -53,12 +42,10 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
         const result = await response.json();
 
-        const toneOptions = JSON.parse(result.data.metafieldDefinition.validations.filter((validation: any) => validation.name === "choices")[0].value);
+        const metafieldOptions = JSON.parse(result.data.metafieldDefinition.validations.filter((validation: any) => validation.name === "choices")[0].value);
 
-        reply.validations = toneOptions;
+        reply.validations = metafieldOptions;
 
-    } else if (params.definitionType === "occasionName") {
-        //TODO
     } else {
         const url = new URL(request.url);
         const searchTerm = url.searchParams.get("search");

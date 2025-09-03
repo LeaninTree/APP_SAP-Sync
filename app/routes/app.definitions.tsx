@@ -1,17 +1,7 @@
 import {
   Page,
-  IndexTable,
   Text,
-  Thumbnail,
-  Badge,
-  Link,
-  useBreakpoints,
-  EmptySearchResult,
-  IndexFilters,
-  useSetIndexFiltersMode,
-  IndexFiltersProps,
   BlockStack,
-  IndexFiltersMode,
   Box,
   Layout,
   Tabs,
@@ -19,7 +9,6 @@ import {
   ResourceList,
   ResourceItem,
   Filters,
-  ChoiceList,
   FooterHelp,
   TextField,
   Spinner,
@@ -30,13 +19,22 @@ import {
   Divider
 } from "@shopify/polaris";
 import { useFetcher } from "@remix-run/react";
-import { useCallback, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@shopify/polaris-icons';
 
 interface Reply {
     definitions?: DefinitionPreview[];
     moreDefinitions?: boolean;
-    validations?: string[]
+    validations?: string[];
+    name?: string;
+    type?: string;
+    fields?: MetaObjectField[];
+}
+
+interface MetaObjectField {
+    key: string;
+    value: string;
+    options?: string[];
 }
 
 interface DefinitionPreview {
@@ -46,7 +44,10 @@ interface DefinitionPreview {
 
 export default function Index() {
     const [currentDefinitionType, setCurrentDefintionType] = useState(0);
+    const [currentObj, setCurrentObj] = useState("");
     const [typeLoading, setTypeLoading] = useState(true);
+    const [objLoading, setObjLoading] = useState(true);
+    const [isObjChanged, setIsObjChanged] = useState(false);
 
     const tabs = [
         {
@@ -70,7 +71,7 @@ export default function Index() {
             accessibilityLabel: "Category",
         },
         {
-            id: "occasionNames",
+            id: "occasionName",
             content: "Occasions",
             accessibilityLabel: "Occasions",
         },
@@ -100,29 +101,109 @@ export default function Index() {
     const [queryValue, setQueryValue] = useState("");
     const [definitionList, setDefintionList] = useState<DefinitionPreview[]>([]);
     const [validationList, setValidationList] = useState<string[]>([]);
+    const [originalValidationList, setOriginalValidationList] = useState<string[]>([]);
+
+    const [objName, setObjName] = useState("");
+    const [fieldList, setFieldList] =useState<MetaObjectField[]>([]);
+    const [originalFieldList, setOriginalFieldList] =useState<MetaObjectField[]>([]);
+
+    useEffect(() => {
+        const hasChanged = JSON.stringify(validationList) !== JSON.stringify(originalValidationList);
+        setIsObjChanged(hasChanged);
+    }, [validationList]);
 
     const fetcher = useFetcher();
 
     useEffect(() => {
         setTypeLoading(true);
-    }, [currentDefinitionType])
+        setCurrentObj("");
+        setMoreDefinitions(false);
+        setDefintionList([]);
+    }, [currentDefinitionType]);
+
+    useEffect(() => {
+        setValidationList([]);
+        setIsObjChanged(false);
+        setOriginalValidationList([]);
+        setObjName("");
+        setFieldList([]);
+        setOriginalFieldList([]);
+    }, [currentDefinitionType, currentObj]);
+
+    useEffect(() => {
+        setObjLoading(true);
+    }, [currentObj])
 
     useEffect(() => {
         fetcher.load(`/api/shopify/${tabs[currentDefinitionType].id}/get${queryValue ? `?search=${queryValue}` : ""}`);
     }, [currentDefinitionType, queryValue]);
 
     useEffect(() => {
+        fetcher.load(`/api/shopify/metaobject/get/${currentObj.replace("gid://shopify/Metaobject/", "")}`);
+    }, [currentObj])
+
+    useEffect(() => {
         if (fetcher.data) {
           const replyData = fetcher.data as Reply;
-    
-          setMoreDefinitions(replyData.moreDefinitions ? replyData.moreDefinitions : false);
-          setDefintionList(replyData.definitions ? replyData.definitions : []);
-          setValidationList(replyData.validations ? replyData.validations : []);
-          setTypeLoading(false);
+
+          if (replyData.type && replyData.type === tabs[currentDefinitionType].id) {
+            setObjName(replyData.name ? replyData.name : "");
+            setFieldList(replyData.fields ? replyData.fields : []);
+            setOriginalFieldList(replyData.fields ? replyData.fields : []);
+            setObjLoading(false);
+          } else {
+            setMoreDefinitions(replyData.moreDefinitions ? replyData.moreDefinitions : false);
+            setDefintionList(replyData.definitions ? replyData.definitions : []);
+            setValidationList(replyData.validations ? replyData.validations : []);
+            setOriginalValidationList(replyData.validations ? replyData.validations : []);
+            setTypeLoading(false);
+          }
         }
     },[
         fetcher.data
     ]);
+
+    const handleRemove = (validationsIndex: number) => {
+       const newValidations = validationList.filter((_, index) => index !== validationsIndex);
+       setValidationList(newValidations);
+    };
+
+    const handleMove = (validationsIndex: number, direction: "UP" | "DOWN") => {
+        const newValidations = [...validationList];
+        if (direction === "UP" && validationsIndex > 0) {
+            [newValidations[validationsIndex], newValidations[validationsIndex - 1]] = [newValidations[validationsIndex - 1], newValidations[validationsIndex]]
+        } else if (direction === "DOWN" && validationsIndex < validationList.length - 1) {
+            [newValidations[validationsIndex], newValidations[validationsIndex + 1]] = [newValidations[validationsIndex + 1], newValidations[validationsIndex]]
+        }
+        setValidationList(newValidations);
+    };
+
+    const addValidation = () => {
+        const newValidations = [...validationList, ""];
+        setValidationList(newValidations);
+    };
+
+    const handleValidationChange = (index: number, newValue: string) => {
+        const newValidations = validationList.map((validation, i) => {
+            if (i === index) {
+                return newValue;
+            }
+            return validation;
+        });
+        setValidationList(newValidations);
+    };
+
+    const handleCancel = (object: string) => {
+        if (object === "occasionName" || object === "tone") {
+            setValidationList(originalValidationList);
+        } else {
+            //TODO
+        }
+    };
+
+    const handleSave = (object: string) => {
+        //TODO
+    };
 
   return (
     <Page 
@@ -144,31 +225,35 @@ export default function Index() {
         :
             <Layout>
                 <Layout.Section variant="oneThird">
-                    {tabs[currentDefinitionType].id !== "occasionNames" && tabs[currentDefinitionType].id !== "tone" ?
+                    {tabs[currentDefinitionType].id !== "occasionName" && tabs[currentDefinitionType].id !== "tone" ?
                         <Card padding="0">
                             <BlockStack gap="300">
                                 <ResourceList
                                     resourceName={{singular: tabs[currentDefinitionType].content, plural: tabs[currentDefinitionType].content}}
                                     items={definitionList}
                                     filterControl={
-                                        <Filters 
-                                            filters={[]}
-                                            appliedFilters={[]}
-                                            onQueryChange={(newValue: string) => setQueryValue(newValue)}
-                                            onQueryClear={() => setQueryValue("")}
-                                            onClearAll={() => setQueryValue("")}
-                                            hideFilters
-                                            queryValue={queryValue}
-                                        />
+                                        <InlineGrid gap="100" columns={['twoThirds', 'oneThird']} alignItems="center">
+                                            <Filters 
+                                                filters={[]}
+                                                appliedFilters={[]}
+                                                onQueryChange={(newValue: string) => setQueryValue(newValue)}
+                                                onQueryClear={() => setQueryValue("")}
+                                                onClearAll={() => setQueryValue("")}
+                                                hideFilters
+                                                queryValue={queryValue}
+                                            />
+                                            <Button variant={/* //TODO */ "primary"}>Add New</Button>
+                                        </InlineGrid>
                                     }
-                                    renderItem={(item, id, index) => { 
+                                    renderItem={(item, id) => { 
                                         return (
                                             <ResourceItem
                                                 id={id}
                                                 accessibilityLabel={`View details for ${item.name} definition.`}
-                                                onClick={() => {}}
+                                                onClick={() => setCurrentObj(item.id)}
+                                                disabled={item.id === currentObj}
                                             >
-                                                <Text variant="bodyMd" fontWeight="bold" as="h3">
+                                                <Text variant="bodyMd" fontWeight={item.id === currentObj ? "regular" : "bold"} tone={item.id === currentObj ? "disabled" : "base"} as="h3">
                                                     {item.name}
                                                 </Text>
                                             </ResourceItem>
@@ -185,50 +270,60 @@ export default function Index() {
                     : null}
                 </Layout.Section>
                 <Layout.Section>
-                    <Card>
-                        <BlockStack gap="400">
-                            <InlineGrid gap="400" columns={['twoThirds', 'oneThird']} alignItems="center">
-                                <Text variant="headingLg" as="h2" key="Heading">
-                                    {tabs[currentDefinitionType].id === "occasionNames" || tabs[currentDefinitionType].id === "tone" ? 
-                                        tabs[currentDefinitionType].content
+                    {currentObj || validationList.length > 0 ? 
+                        objLoading && validationList.length === 0 ?
+                            <Spinner accessibilityLabel="Loading Definition" size="large" />
+                        :
+                            <Card>
+                                <BlockStack gap="400">
+                                    <InlineGrid gap="400" columns={['twoThirds', 'oneThird']} alignItems="center">
+                                        <Text variant="headingLg" as="h2" key="Heading">
+                                            {tabs[currentDefinitionType].id === "occasionName" || tabs[currentDefinitionType].id === "tone" ? 
+                                                tabs[currentDefinitionType].content
+                                            :
+                                                objName
+                                            }
+                                        </Text>
+                                        <InlineStack direction="row-reverse">
+                                            <ButtonGroup>
+                                                <Button onClick={() => handleCancel(tabs[currentDefinitionType].id)} disabled={!isObjChanged}>Cancel</Button>
+                                                <Button variant="primary" onClick={() => handleSave(tabs[currentDefinitionType].id)} disabled={!isObjChanged}>Save</Button> 
+                                            </ButtonGroup>
+                                        </InlineStack>
+                                    </InlineGrid>
+                                    <Divider />
+                                    { validationList.length > 0 ?
+                                        <>
+                                            {validationList.map((validation, index) => (
+                                                <InlineGrid gap="200" columns={['twoThirds', 'oneThird']} key={`${tabs[currentDefinitionType].id}-${validation}`}>
+                                                    <TextField
+                                                        label="validation"
+                                                        labelHidden
+                                                        value={validation}
+                                                        onChange={(newValue: string) => handleValidationChange(index, newValue)}
+                                                        autoComplete="off"
+                                                    />
+                                                    <InlineGrid gap="200" columns={3}>
+                                                        <Button icon={ChevronUpIcon} onClick={() => handleMove(index, "UP")} disabled={index === 0}></Button>
+                                                        <Button icon={ChevronDownIcon} onClick={() => handleMove(index, "DOWN")} disabled={index === validationList.length - 1}></Button>
+                                                        <Button variant="primary" tone="critical" icon={DeleteIcon} onClick={() => handleRemove(index)} disabled={validationList.length === 1}></Button>
+                                                    </InlineGrid>
+                                                </InlineGrid>
+                                            ))}
+                                            <Button fullWidth variant="primary" onClick={() => addValidation()} key="AddNewValidation">Add New {tabs[currentDefinitionType].content}</Button>
+                                        </>
                                     :
-                                        "TEST" //TODO
+                                        <>
+                                            {fieldList.map((field, index) => (
+                                                <>
+                                                    <p>[{field.key}] {field.value} - {field.options}</p>
+                                                </>
+                                            ))}
+                                        </>
                                     }
-                                </Text>
-                                <InlineStack direction="row-reverse">
-                                     <ButtonGroup>
-                                        <Button>Cancel</Button>
-                                        <Button variant="primary">Save</Button>
-                                    </ButtonGroup>
-                                </InlineStack>
-                            </InlineGrid>
-                            <Divider />
-                            { validationList.length > 0 ?
-                                <>
-                                    {validationList.map(validation => (
-                                        <InlineGrid gap="200" columns={['twoThirds', 'oneThird']}>
-                                            <TextField
-                                                label="validation"
-                                                labelHidden
-                                                value={validation}
-                                                onChange={() => {}} //TODO
-                                                autoComplete="off"
-                                                //Add move up down and delete
-                                            />
-                                            <InlineGrid gap="200" columns={3}>
-                                                <Button icon={ChevronUpIcon} onClick={() => {}}></Button>
-                                                <Button icon={ChevronDownIcon} onClick={() => {}}></Button>
-                                                <Button variant="primary" tone="critical" icon={DeleteIcon} onClick={() => {}}></Button>
-                                            </InlineGrid>
-                                        </InlineGrid>
-                                    ))}
-                                    <Button fullWidth variant="primary" onClick={() => {}} key="AddNewRule">Add New {tabs[currentDefinitionType].content}</Button>
-                                </>
-                            :
-                                null //TODO
-                            }
-                        </BlockStack>
-                    </Card>
+                                </BlockStack>
+                            </Card>
+                            : null}
                 </Layout.Section>
             </Layout>
         }
