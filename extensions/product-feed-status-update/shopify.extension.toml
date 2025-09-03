@@ -1,0 +1,6 @@
+[[extensions]]
+name = "Product Feed Status Update"
+handle = "product-feed-status-update"
+type = "flow_trigger"
+uid = "cfb15dd6-3f7c-4448-8b77-f6eb2d03b8dc"
+description = "Get a list of IT Errors, Action Required Updates and Product Status Changes when a Product Feed is completed."

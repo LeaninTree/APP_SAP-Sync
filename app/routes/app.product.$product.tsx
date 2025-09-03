@@ -18,12 +18,13 @@ import {
   AutoSelection,
   Combobox,
   Banner,
-  ChoiceList
+  ChoiceList,
+  FooterHelp
 } from "@shopify/polaris";
 import { useCallback, useState, useMemo, useEffect } from "react";
 import { authenticate } from "app/shopify.server";
-import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
 
 interface Variant {
     id: String;
@@ -83,18 +84,21 @@ interface Product {
     customizable?: String;
 }
 
-export async function loader({request, params}: LoaderFunctionArgs) {
-    const url = new URL(request.url);
-    const error = url.searchParams.get("error");
-    const success = url.searchParams.get("success");
+interface Response {
+    tone: "success" | "warning" | "critical";
+    message: String;
+}
 
-    const { admin } = await authenticate.admin(request);
+export async function loader({request, params}: LoaderFunctionArgs) {
+
+    const { admin, redirect } = await authenticate.admin(request);
 
     const response = await admin.graphql(
         `#graphql
             query getProduct($id: ID!) {
                 product(id: $id) {
                     id
+                    status
                     title
                     description
                     seo {
@@ -227,6 +231,10 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     );
 
     const data = await response.json();
+
+    if (data.data.product.status !== "ACTIVE") {
+        return redirect("/app/products");
+    }
 
     const variantsList: Variant[] = [];
 
@@ -518,7 +526,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
             `#graphql
                 query getRecipient($id: ID!) {
                     metaobject(id: $id) {
-                        displayName
+                        handle
                     }   
                 }
             `,
@@ -531,7 +539,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
         
         const recipientData = await recipientResponse.json();
         
-        product.recipient = recipientData.data.metaobject.displayName;
+        product.recipient = recipientData.data.metaobject.handle;
     }
 
     const toneResponse = await admin.graphql(
@@ -569,6 +577,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
                 metaobjects(type: $type, first: 250) {
                     nodes {
                         displayName
+                        handle
                     }
                 }
             }
@@ -583,7 +592,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     const recipientData = await recipientResponse.json();
 
     const recipientOptions = recipientData.data.metaobjects.nodes.map((choice: any) => ({
-        value: choice.displayName,
+        value: choice.handle,
         label: choice.displayName
     }));
 
@@ -616,12 +625,13 @@ export async function loader({request, params}: LoaderFunctionArgs) {
         label: choice
     }));
 
-    return [product, toneOptions, recipientOptions, customizableOptions, error, success];
+    return [product, toneOptions, recipientOptions, customizableOptions];
 }
 
 export default function ProductPage() {
+    const [loading, setLoading] = useState(false);
 
-    const [productData, toneOptions, recipientOptions, customizableOptions, error, success] = useLoaderData<typeof loader>();
+    const [productData, toneOptions, recipientOptions, customizableOptions] = useLoaderData<typeof loader>();
 
     const [title, setTitle] = useState(productData.title);
     const [description, setDescription] = useState(productData.description);
@@ -656,7 +666,7 @@ export default function ProductPage() {
         updateKeywordSelection(keyword);
     }, [updateKeywordSelection]);
     const getAllKeywords = useCallback(() => {
-        const savedKeywords = productData.tags;
+        const savedKeywords = productData.tags.splice(250);
         return [...new Set([...savedKeywords, ...selectedKeywords].sort())];
     }, [selectedKeywords]);
     const formatOptionText = useCallback((option: string) => {
@@ -682,6 +692,7 @@ export default function ProductPage() {
     const escapeSpecialRegExCharacters = useCallback((value: string) => {
         return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }, []);
+    const [keywordCount, setKeywordCount] = useState(999);
     const keywordOptions = useMemo(() => {
         let list;
         const allTags = getAllKeywords();
@@ -691,6 +702,9 @@ export default function ProductPage() {
         } else {
             list = allTags;
         }
+
+        list.splice(250);
+        setKeywordCount(list.length)
 
         return [...list];
     }, [keywordValue, getAllKeywords, escapeSpecialRegExCharacters]);
@@ -874,17 +888,9 @@ export default function ProductPage() {
         ]
     );
 
-    const [syncBanner, setSyncBanner] = useState(false);
+    const [response, setResponse] = useState<Response | null>(null);
+
     const [removeBanner, setRemoveBanner] = useState(false);
-
-    useEffect(() => {
-        if (success) {
-            setSyncBanner(false);
-            setRemoveBanner(false);
-        }
-    }, [success]);
-
-    const fetcher = useFetcher();
 
     return (
         <Page
@@ -893,84 +899,72 @@ export default function ProductPage() {
             subtitle={`${productData.category ? `${productData.category}-`: null}${productData.prefix}${productData.sku}${productData.upc ? ` | UPC-17: ${productData.upc}` : ""}`}
             backAction={{
                 content: "Products",
-                url: "/app/product"
+                url: "/app/products"
             }}
             primaryAction={{
                 content: 'Save', 
-                disabled: !dataChange || (syncBanner || removeBanner),
-                onAction: () => {fetcher.submit(
-                    {
-                        title: title,
-                        description: description,
-                        metaDescription: metaDescription,
-                        keywords: JSON.stringify(keywordOptions),
-                        tone: tone,
-                        recipient: recipient,
-                        customizable: customizable,
-                        language: language,
-                        political: political,
-                        sexual: sexual,
-                        nudity: nudity,
-                        altTexts: JSON.stringify(altText.map((text: String, index: number) => ({
-                            id: productData.media[index].id,
-                            alt: text
-                        }))),
-                        variants: JSON.stringify(override.map((override: Boolean, index: number) => ({
-                            id: productData.variants[index].id,
-                            override: override,
-                            clearance: clearance[index],
-                            price: pricing[index]
-                        })))
-                    },
-                    { method: "POST", action: `/app/product/${productData.id}/update` }
-                )}
+                disabled: !dataChange || removeBanner || loading,
+                onAction: () => {
+                    setLoading(true);
+
+                    const formData = new FormData();
+                    formData.append("title", title);
+                    formData.append("description", description);
+                    formData.append("metaDescription", metaDescription);
+                    formData.append("keywords", JSON.stringify(keywordOptions));
+                    formData.append("tone", tone);
+                    formData.append("recipient", recipient);
+                    formData.append("customizable", customizable.length > 0 ? JSON.stringify(customizable) : JSON.stringify(["Preprinted"]));
+                    formData.append("language", language);
+                    formData.append("political", political);
+                    formData.append("sexual", sexual);
+                    formData.append("nudity", nudity);
+                    formData.append("altTexts", JSON.stringify(altText.map((text: String, index: number) => ({
+                        id: productData.media[index].id,
+                        alt: text
+                    }))));
+                    formData.append("variants", JSON.stringify(override.map((override: Boolean, index: number) => ({
+                        id: productData.variants[index].id,
+                        name: productData.variants[index].name,
+                        override: override,
+                        clearance: clearance[index],
+                        price: pricing[index]
+                    }))));
+
+
+                    fetch(`/api/shopify/product/update/${productData.id}`, {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        setResponse(result);
+                        setDataChange(false);
+                        setLoading(false);
+                    })
+                },
+                loading: loading
             }}
             secondaryActions={[
                 {
-                    content: 'Resync with SAP',
-                    disabled: (syncBanner || removeBanner),
-                    onAction: () => {setSyncBanner(true)},
+                    content: 'Sync Tool',
+                    disabled: removeBanner || loading,
+                    target: '_blank',
+                    url: "google.com" //TODO
                 },
                 {
                     content: 'Remove Product',
                     destructive: true,
-                    disabled: (syncBanner || removeBanner),
+                    disabled: removeBanner || loading,
                     onAction: () => {setRemoveBanner(true)},
                 },
             ]}
         >
             <BlockStack gap="500">
-                {error ?
-                    <Banner tone="critical" key="Banner-Error">
+                {response ?
+                    <Banner tone={response.tone} key="Response-Banner">
                         <Text variant="bodyMd" as="p">
-                            There was an error preforming the {error} action. Please try again.
-                        </Text>
-                    </Banner>
-                :
-                    null
-                }
-                {success ?
-                    <Banner tone="success" key="Banner-Success">
-                        <Text variant="bodyMd" as="p">
-                            The product {success} action was completed.
-                        </Text>
-                    </Banner>
-                :
-                    null
-                }
-                {syncBanner ? 
-                    <Banner
-                        title="WARNING! SAP Sync"
-                        action={{
-                            content: "Sync",
-                            url: `/app/product/${productData.id}/sync`
-                        }}
-                        onDismiss={() => setSyncBanner(false)}
-                        tone="warning"
-                        key="Banner-Sync"
-                    >
-                        <Text variant="bodyMd" as="p">
-                            This action can override data displayed on this page. All changes should be done within SAP, when possible, to guarantee those changes persist.
+                            {response.message}
                         </Text>
                     </Banner>
                 :
@@ -981,7 +975,17 @@ export default function ProductPage() {
                         title="WARNING! Remove Product from Feed"
                         action={{
                             content: "Remove",
-                            url: `/app/product/${productData.id}/remove`
+                            onAction: () => {
+                                setLoading(true);
+
+                                fetch(`/api/shopify/product/archive/${productData.id}`, {method: 'POST'})
+                                .then(response => response.json())
+                                .then(result => {
+                                    setResponse(result);
+                                    setLoading(false);
+                                });
+                            },
+                            loading: loading
                         }}
                         onDismiss={() => setRemoveBanner(false)}
                         tone="critical"
@@ -1044,6 +1048,8 @@ export default function ProductPage() {
                                                 verticalContent={verticalContentMarkup}
                                                 onChange={setKeywordValue}   
                                                 placeholder="Add Keyword..."
+                                                helpText={keywordCount >= 250 ? "Maximum of 250 keywords." : null}
+                                                disabled={keywordCount >= 250}
                                             />
                                         }
                                         key="Col1-1-6"
@@ -1418,9 +1424,9 @@ export default function ProductPage() {
                         </BlockStack>
                     </Layout.Section>
                 </Layout>
-                <Text variant="bodyMd" as="p" tone="subdued" alignment="center" key="Page-2">
+                <FooterHelp>
                     For any questions or help please submit a ticket to the HelpDesk.
-                </Text>
+                </FooterHelp>
             </BlockStack>
         </Page>
     );
