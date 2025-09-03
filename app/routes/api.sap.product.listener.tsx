@@ -1222,7 +1222,26 @@ export async function action({ request }: ActionFunctionArgs) {
             //TODO set customizable metafield, move it to 
         }
 
-        const flowResponse = await admin.graphql(
+        console.log("==========================================================================================");
+        console.log("IT ERRORS");
+        console.log("==========================================================================================");
+        console.log(ITErrors);
+        console.log("==========================================================================================");
+        console.log("==========================================================================================");
+        console.log("==========================================================================================");
+        console.log("STATUS UPDATE");
+        console.log("==========================================================================================");
+        console.log(productStatus);
+        console.log("==========================================================================================");
+        console.log("==========================================================================================");
+        console.log("==========================================================================================");
+        console.log("IT ERRORS");
+        console.log("==========================================================================================");
+        console.log(ITErrors);
+        console.log("==========================================================================================");
+        console.log("==========================================================================================");
+
+        /*const flowResponse = await admin.graphql(
             `#graphql
                 mutation flowTrigger($payload: JSON) {
                     flowTriggerReceive(handle: "product-feed-status-update", payload: $payload) {
@@ -1250,7 +1269,7 @@ export async function action({ request }: ActionFunctionArgs) {
             for (let i = 0; i < flowResult.data.userErrors.length; i++) {
                 console.log(`[${flowResult.data.userErrors[i].field}] ${flowResult.data.userErrors[i].message}`)
             }
-        }
+        }*/
 
         return new Response(
             `OK - Data Processing Complete`, 
