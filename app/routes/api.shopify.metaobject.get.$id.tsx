@@ -4,6 +4,8 @@ import { authenticate } from "app/shopify.server";
 interface Field {
     key: string;
     value: string;
+    type: string;
+    name: string;
     options?: string[];
 }
 
@@ -27,7 +29,9 @@ export async function loader({request, params}: LoaderFunctionArgs) {
                     fields {
                         key
                         value
+                        type
                         definition {
+                            name
                             validations {
                                 name
                                 value
@@ -46,6 +50,8 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
     const result = await response.json();
 
+    console.log(result.data.metaobject);
+
     reply.type = result.data.metaobject.type;
 
     reply.name = result.data.metaobject.displayName;
@@ -53,7 +59,9 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     reply.fields = result.data.metaobject.fields.map((field: any) => {
         const tempField: Field = {
             key: field.key,
-            value: field.value
+            value: field.value,
+            type: field.type,
+            name: field.definition.name
         };
 
         if (field.definition.validations.length > 0) {

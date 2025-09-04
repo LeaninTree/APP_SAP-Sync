@@ -16,7 +16,11 @@ import {
   Button,
   ButtonGroup,
   InlineStack,
-  Divider
+  Divider,
+  Select,
+  ChoiceList,
+  DropZone,
+  Thumbnail
 } from "@shopify/polaris";
 import { useFetcher } from "@remix-run/react";
 import { useState, useEffect } from "react";
@@ -34,6 +38,8 @@ interface Reply {
 interface MetaObjectField {
     key: string;
     value: string;
+    type: string;
+    name: string;
     options?: string[];
 }
 
@@ -197,7 +203,7 @@ export default function Index() {
         if (object === "occasionName" || object === "tone") {
             setValidationList(originalValidationList);
         } else {
-            //TODO
+            setFieldList(originalFieldList);
         }
     };
 
@@ -314,11 +320,111 @@ export default function Index() {
                                         </>
                                     :
                                         <>
-                                            {fieldList.map((field, index) => (
-                                                <>
-                                                    <p>[{field.key}] {field.value} - {field.options}</p>
-                                                </>
-                                            ))}
+                                            {fieldList.map((field, index) => {
+                                                 if (field.options && field.options.length > 0) {
+                                                    if (field.type.startsWith("list.")) {
+                                                        return (
+                                                            <ChoiceList 
+                                                                allowMultiple
+                                                                title={field.name}
+                                                                choices={field.options.map(option => ({label: option, value: option}))}
+                                                                selected={JSON.parse(field.value)}
+                                                                onChange={() => {}} //TODO
+                                                            />
+                                                        );
+                                                    } else {
+                                                        return (
+                                                            <Select
+                                                                label={field.name}
+                                                                options={field.options.map(option => ({label: option, value: option}))}
+                                                                value={field.value}
+                                                                onChange={() => {}} //TODO
+                                                            />
+                                                        );
+                                                    }
+                                                } else {
+                                                    if (field.type === "single_line_text_field") {
+                                                        return (
+                                                            <TextField 
+                                                                label={field.name}
+                                                                value={field.value ? field.value : ""}
+                                                                onChange={() => {}} //TODO
+                                                                autoComplete="off"
+                                                            />
+                                                        );
+                                                    } else if (field.type === "list.single_line_text_field") {
+                                                        //Multi Textfield
+                                                    } else if (field.type === "multi_line_text_field") {
+                                                        return (
+                                                            <TextField 
+                                                                label={field.name}
+                                                                value={field.value ? field.value : ""}
+                                                                onChange={() => {}} //TODO
+                                                                autoComplete="off"
+                                                                multiline={4}
+                                                            />
+                                                        );
+                                                    } else if (field.type === "file_reference") {
+                                                        return (
+                                                            <DropZone 
+                                                                label={field.name}
+                                                                allowMultiple={false}
+                                                                onDrop={() => {}} //TODO
+                                                            >
+                                                                {field.value !== null ?
+                                                                    <Thumbnail 
+                                                                        size="large"
+                                                                        alt={field.key}
+                                                                        source={field.value} //TODO
+                                                                    />
+                                                                :
+                                                                    null
+                                                                }
+                                                                <DropZone.FileUpload actionHint="Accepts JPEG, PNG, WEBP, SVG, HEIC, GIF, MOV and MP4. Files must be under 20MB." />
+                                                            </DropZone>
+                                                        );
+                                                    } else if (field.type === "boolean") {
+                                                        return (
+                                                            <ChoiceList 
+                                                                title={field.name}
+                                                                choices={[
+                                                                    { label: "Yes", value: "true" },
+                                                                    { label: "No", value: "false" }
+                                                                ]}
+                                                                selected={[...(field.value ? field.value : "false")]}
+                                                                onChange={() => {}} //TODO
+                                                            />
+                                                        );
+                                                    } else if (field.type === "money") {
+                                                        let amount = null;
+                                                        if (field.value !== null) {
+                                                            amount = JSON.parse(field.value);
+                                                        }
+                                                        return (
+                                                            <TextField 
+                                                                label={field.name}
+                                                                value={amount && amount.amount ? amount.amount : ""}
+                                                                onChange={() => {}} //TODO
+                                                                autoComplete="off"
+                                                                type="currency"
+                                                                prefix="$"
+                                                            />
+                                                        );
+                                                    } else if (field.type === "number_integer") {
+                                                        return (
+                                                            <TextField 
+                                                                label={field.name}
+                                                                value={field.value ? field.value : ""}
+                                                                onChange={() => {}} //TODO
+                                                                autoComplete="off"
+                                                                type="integer"
+                                                            />
+                                                        );
+                                                    } else if (field.type === "metaobject_reference") {
+                                                        //TODO
+                                                    }
+                                                }
+                                            })}
                                         </>
                                     }
                                 </BlockStack>

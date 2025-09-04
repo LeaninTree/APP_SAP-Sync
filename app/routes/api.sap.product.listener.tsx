@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { authenticate } from "app/shopify.server";
 import { AdminApiContextWithoutRest } from "node_modules/@shopify/shopify-app-remix/dist/ts/server/clients/admin/types";
 import { Type, createUserContent, GoogleGenAI, GenerateContentResponse, PartListUnion } from "@google/genai"
@@ -178,9 +178,21 @@ interface UploadMedia {
     alt: string;
 }
 
+export async function loader({request}: LoaderFunctionArgs) {
+    return new Response(
+        `${request.method} not allowed. Please use POST.`, 
+        {
+            status: 405,
+            headers: { "Content-Type": "application/json" }
+        }
+    );
+}
+
 export async function action({ request }: ActionFunctionArgs) {
     if (request.method === 'POST') {
+        console.log("REQUEST RECIEVED");
         const { admin } = await authenticate.admin(request);
+        console.log("REQUEST AUTHENTICATED");
         const data = await request.json();
 
         const callStartTime = Date.now();
