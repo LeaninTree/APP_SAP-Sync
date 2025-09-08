@@ -4,20 +4,32 @@ import { authenticate } from "app/shopify.server";
 interface Definition {
     id: string;
     name: string;
+    defined: boolean;
 }
 
-interface Reply {
-    definitions?: Definition[];
-    moreDefinitions?: boolean;
-    validations?: string[];
+export interface DefinitionPreview {
+    id: string;
+    name: string;
+    defined: boolean;
+}
+
+export interface TabReply {
+    moreDefinitions: boolean;
+    definitions: DefinitionPreview[];
+    validations: string[] | null;
 }
 
 export async function loader({request, params}: LoaderFunctionArgs) {
 
     const { admin } = await authenticate.admin(request);
-    let reply: Reply = {};
 
-    if (params.definitionType === "tone" || params.definitionType === "occasionName") {
+    let reply: TabReply = {
+        definitions: [],
+        moreDefinitions: false,
+        validations: null
+    }
+
+    if (params.definitionType === "tone") {
         const response = await admin.graphql(
             `#graphql
                 query GetMetafieldOptions($identifier: MetafieldDefinitionIdentifierInput!) {
@@ -34,7 +46,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
                     identifier: {
                         ownerType: "PRODUCT",
                         namespace: "custom",
-                        key: params.definitionType === "tone" ? "tone" : "occasion"
+                        key: "tone"
                     }
                 }
             }
@@ -42,10 +54,36 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
         const result = await response.json();
 
-        const metafieldOptions = JSON.parse(result.data.metafieldDefinition.validations.filter((validation: any) => validation.name === "choices")[0].value);
+        reply.validations = JSON.parse(result.data.metafieldDefinition.validations.filter((validation: any) => validation.name === "choices")[0].value);
 
-        reply.validations = metafieldOptions;
+    } else if (params.definitionType === "recipient" || params.definitionType === "occasionName") {
+        const response = await admin.graphql(
+            `#graphql
+                query GetMetaobjectFieldOptions($type: String!) {
+                    metaobjectDefinitionByType(type: $type) {
+                        fieldDefinitions {
+                            key
+                            validations {
+                                name
+                                value
+                            }
+                        }
+                    }
+                }
+            `,
+            {
+                variables: {
+                    type: params.definitionType === "occasionName" ? "occasion" : "recipient"
+                }
+            }
+        );
 
+        const result = await response.json();
+        if (params.definitionType === "recipient") {
+            reply.validations = JSON.parse(result.data.metaobjectDefinitionByType.fieldDefinitions.filter((field: any) => field.key === "group")[0].validations.filter((validation: any) => validation.name === "choices")[0].value);
+        } else {
+            reply.validations = JSON.parse(result.data.metaobjectDefinitionByType.fieldDefinitions.filter((field: any) => field.key === "name")[0].validations.filter((validation: any) => validation.name === "choices")[0].value);
+        }    
     } else {
         const url = new URL(request.url);
         const searchTerm = url.searchParams.get("search");
@@ -71,6 +109,9 @@ export async function loader({request, params}: LoaderFunctionArgs) {
                         nodes {
                             displayName
                             id
+                            defined: field(key: "definition") {
+                                value
+                            }
                         }
                     }
                 }
@@ -87,13 +128,16 @@ export async function loader({request, params}: LoaderFunctionArgs) {
         result.data.metaobjects.nodes.forEach((definition: any) => {
             definitionList.push({
                 id: definition.id,
-                name: definition.displayName
+                name: definition.displayName,
+                defined: definition.defined? definition.defined.value === 'true': false 
             });
         });
 
-        reply.moreDefinitions = result.data.metaobjects.pageInfo.hasNextPage;
-
-        reply.definitions = definitionList;
+        reply = {
+            definitions: definitionList,
+            moreDefinitions: result.data.metaobjects.pageInfo.hasNextPage,
+            validations: null
+        };
     }
 
     return new Response(JSON.stringify(reply), {
