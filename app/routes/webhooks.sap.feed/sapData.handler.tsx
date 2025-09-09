@@ -1285,7 +1285,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                         title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
                         seo: {
                             title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
-                            description: !shopifyAiData || shopifyProductData.metaDescription && shopifyAiData ? shopifyProductData.metaDescription === shopifyAiData.metaDescription ? shopifyAiData.metaDescription : shopifyProductData.metaDescription : ""
+                            description: shopifyProductData.metaDescription && shopifyAiData ? shopifyProductData.metaDescription === shopifyAiData.metaDescription ? shopifyAiData.metaDescription : shopifyProductData.metaDescription : ""
                         },
                         descriptionHtml: !shopifyAiData || shopifyProductData.description === shopifyAiData.description ? aiData.description : shopifyProductData.description,
                         metafields: productMetafields
