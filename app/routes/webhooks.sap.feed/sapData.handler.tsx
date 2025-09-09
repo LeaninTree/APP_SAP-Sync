@@ -1,6 +1,5 @@
 import { AdminApiContextWithoutRest } from "node_modules/@shopify/shopify-app-remix/dist/ts/server/clients";
 import { getShopifyProductData } from "./shopifyData.handler";
-import { runAIAnalysis, AIResponse } from "./aiAnalysis";
 
 export interface Error {
     code: string;
@@ -1078,63 +1077,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             });
         }
 
-        const shopifyAiData = JSON.parse(shopifyProductData.aiData); //TODO add type 
-        let aiData = JSON.parse(shopifyProductData.aiData);
-
-        const tempTitle: string = aiData && aiData.title ? aiData.title : sapProductData.title;
-
-        const tempTone: string = shopifyProductData.tone ? shopifyProductData.tone : "Belated"; //TODO Get default Tone
-        const tempLanguage: number = shopifyProductData.foulLanguage ? shopifyProductData.foulLanguage : 1;
-        const tempSexual: number = shopifyProductData.sexualLevel ? shopifyProductData.sexualLevel : 1;
-        const tempPolitical: number = shopifyProductData.politicalLevel ? shopifyProductData.politicalLevel : 1;
-        const tempNudity: number = shopifyProductData.nudityLevel ? shopifyProductData.nudityLevel : 1;
-        const tempRecipient: string = shopifyProductData.recipient ? shopifyProductData.recipient : defaultRecipient;
-
-        let tags: string[] = [];
-        let aiJsonWBannedTags = aiData;
-        if (shopifyAiData) {
-            const removedTags = shopifyAiData.keywords.filter((element: string) => !shopifyProductData.tags.includes(element));
-            tags = aiData.keywords.filter((tag: string) => !removedTags.includes(tag));
-            aiJsonWBannedTags.keywords = aiData.keywords.concat(removedTags);
-        }
-
-        const productMetafields: Metafield[] = [
-            {
-                namespace: "custom",
-                key: "tone",
-                value: shopifyAiData && tempTone === shopifyAiData.tone ? aiData.tone : tempTone
-            },
-            {
-                namespace: "custom",
-                key: "recipient",
-                value: shopifyAiData && tempRecipient === shopifyAiData.recipient ? aiData.recipeint : tempRecipient
-            },
-            {
-                namespace: "custom",
-                key: "foulLanguage",
-                value: shopifyAiData && tempLanguage === shopifyAiData.foulLanguageLevel ? aiData.foulLanguageLevel.toString() : tempLanguage.toString()
-            },
-            {
-                namespace: "custom",
-                key: "sexualLevel",
-                value: shopifyAiData && tempSexual === shopifyAiData.sexualLevel ? aiData.sexualLevel.toString() : tempSexual.toString()
-            },
-            {
-                namespace: "custom",
-                key: "politicalLevel",
-                value: shopifyAiData && tempPolitical === shopifyAiData.politicalLevel ? shopifyAiData.politicalLevel.toString() : tempPolitical.toString()
-            },
-            {
-                namespace: "custom",
-                key: "nudityLevel",
-                value: shopifyAiData && tempNudity === shopifyAiData.nudityLevel ? shopifyAiData.nudityLevel.toString() : tempNudity.toString()
-            },
-            {
-                namespace: "custom",
-                key: "ai_json",
-                value: JSON.stringify(aiJsonWBannedTags)
-            }
-        ];
+        const productMetafields: Metafield[] = [];
 
         if (artist) {
             productMetafields.push({
@@ -1282,12 +1225,6 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                             values: channels
                         }],
                         variants: formatedVariants,
-                        title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
-                        seo: {
-                            title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
-                            description: shopifyProductData.metaDescription && shopifyAiData ? shopifyProductData.metaDescription === shopifyAiData.metaDescription ? shopifyAiData.metaDescription : shopifyProductData.metaDescription : ""
-                        },
-                        descriptionHtml: !shopifyAiData || shopifyProductData.description === shopifyAiData.description ? aiData.description : shopifyProductData.description,
                         metafields: productMetafields
                     }
                 }
@@ -1303,106 +1240,6 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                 });
             });
             continue;
-        }
-
-        tags = tags.slice(0, 249).concat(`${sapProductData.prefix.toUpperCase()}${sku}`);
-
-        const updateProductTagsResponse = await admin.graphql(
-            `#graphql
-                mutation addProductTags($id: ID!, $tags: [String!]!) {
-                    tagsAdd(id: $id, tags: $tags) {
-                        node {
-                            id
-                        }
-                        userErrors {
-                            field
-                            message
-                        }
-                    }
-                }
-            `,
-            {
-                variables: {
-                    id: shopifyProductData.id,
-                    tags: tags
-                }
-            }
-        );
-        const updateProductTagsResult = await updateProductTagsResponse.json();
-
-        if (updateProductTagsResult.data.tagsAdd.userErrors.length > 0) {
-            updateProductTagsResult.data.tagsAdd.userErrors.forEach((error: any) => {
-                ITErrors.push({
-                    code: sku,
-                    message: `PRODUCT TAGS | (${error.field}) ${error.message}`
-                });
-            });
-            continue;
-        }
-
-        const mediaDefinition: UploadMedia[] = [];
-        if (aiData && aiData.altText.length > 0) {
-            for (let i = 0; i < shopifyProductData.media.length; i++) {
-                const segments = shopifyProductData.media[i].url.split('/');
-                let name = segments[segments.length - 1];
-                const paramsIndex = name.indexOf("?");
-                if (paramsIndex !== -1) {
-                    name = name.substring(0, paramsIndex);
-                }
-                for (let j = 0; j < aiData.altText.length; j++) {
-                    if (name === aiData.altText[j].name) {
-                        if (shopifyAiData) {
-                            for (let k = 0; k < shopifyAiData.altText.length; k++) {
-                                if (name === shopifyAiData.altText[k].name) {
-                                    if (shopifyAiData.altText[k].text === shopifyProductData.media[i].alt) {
-                                        mediaDefinition.push({
-                                            id: shopifyProductData.media[i].id,
-                                            alt: aiData.altText[j].text
-                                        });
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (mediaDefinition.length > 0) {
-            const updateAltTextResponse = await admin.graphql(
-                `#graphql
-                    mutation updateAltText($files: [FileUpdateInput!]!) {
-                        fileUpdate(files: $files) {
-                            files {
-                                id
-                            }
-                            userErrors {
-                                field
-                                message
-                                code
-                            }
-                        }
-                    }                                    
-                `,
-                {
-                    variables: {
-                        files: mediaDefinition
-                    }
-                }
-            );
-            const updateAltTextResult = await updateAltTextResponse.json();
-
-            if (updateAltTextResult.data.fileUpdate.userErrors.length > 0) {
-                updateAltTextResult.data.fileUpdate.userErrors.forEach((error: any) => {
-                    ITErrors.push({
-                        code: sku,
-                        message: `PRODUCT AltText | (${error.field}) ${error.message}`
-                    });
-                });
-                continue;
-            }
         }
     }
 
