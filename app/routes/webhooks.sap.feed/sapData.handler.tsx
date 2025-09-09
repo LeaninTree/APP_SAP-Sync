@@ -56,7 +56,7 @@ interface InventoryQuantity {
     quantity: number;
 }
 
-interface Metafield {
+export interface Metafield {
     namespace: string;
     key: string;
     value: string | boolean;
@@ -114,11 +114,6 @@ interface UploadVariant {
     metafields: Metafield[];
 }
 
-interface UploadMedia {
-    id: string;
-    alt: string;
-}
-
 interface UploadProduct {
     productOptions: {
         name: string;
@@ -131,15 +126,8 @@ interface UploadProduct {
     productType?: string;
 }
 
-export async function handleProductFeed(admin: AdminApiContextWithoutRest, data: any[]) {
-    const callStartTime = Date.now();
-    const twentyFourHoursAgo = callStartTime - (24 * 60 * 60 * 1000);
-    const call24HoursAgo = new Date(twentyFourHoursAgo);
-    const imageDelayCalc = callStartTime - (168 * 60 * 60 * 1000); // One Week Delay
-    const imageDelay = new Date(imageDelayCalc)
-
+export async function handleProductFeed(admin: AdminApiContextWithoutRest, data: any[], feedID: string) {
     const ITErrors: Error[] = [];
-    const ImageCountErrors: Error[] = [];
     const productStatus: Error[] = [];
 
     const brandCache = new Map<String, Brand>();
@@ -170,23 +158,6 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
     );
     const locationData = await locationResponse.json();
     const locationId: string = locationData.data.location.id;
-
-    const defaultRecipientResponse = await admin.graphql(
-        `#graphql
-            query {
-                metaobjects(type: "recipient", first: 1) {
-                    nodes {
-                        id
-                    }
-                }
-            }
-        `,
-        {
-
-        }
-    );
-    const defaultRecipientResult = await defaultRecipientResponse.json();
-    const defaultRecipient: string = defaultRecipientResult.data.metaobjects.nodes.length > 0 ? defaultRecipientResult.data.metaobjects.nodes[0].id : "";
 
     for (const [key, value] of Object.entries(data)) {
         const sku = key;
@@ -752,22 +723,6 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             }
         }
 
-        if (imageCount) {
-            if (shopifyProductData.mediaCount > imageCount) {
-                ImageCountErrors.push({
-                    code: sku,
-                    message: `IMAGES | This product has more images then expected.`
-                });
-            } else if (shopifyProductData.mediaCount === 0 || shopifyProductData.mediaCount < imageCount) {
-                if (shopifyProductData.mediaCount === 0 || imageDelay > shopifyProductData.createdAt) {
-                    ImageCountErrors.push({
-                        code: sku,
-                        message: `IMAGES | This product has less images then expected.`
-                    });
-                }
-            }
-        }
-
         if (shopifyProductData.status === "DRAFT") {
             productStatus.push({
                 code: sku,
@@ -928,69 +883,6 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                 }
 
             uploadVariants.push(tempVariant);
-        }
-
-        if (!JSON.parse(shopifyProductData.aiData) || (shopifyProductData.latestMediaUpdate > call24HoursAgo)) {
-            if (typeName && occasionName) {
-                const response = await admin.graphql(
-                    `#graphql
-                        query GetCurrentAIQueue {
-                            shop {
-                                queue: metafield(namespace: "custom", key: "ai_queue") {
-                                    value
-                                    id
-                                }
-                            }
-                        }
-                    `,
-                    {
-
-                    }
-                );
-
-                const result = await response.json();
-
-                const newQueue: string[] = [...JSON.parse(result.data.shop.queue.value)];
-
-                if (!newQueue.includes(shopifyProductData.id)) {
-                    newQueue.push(shopifyProductData.id);
-                    const updateResponse = await admin.graphql(
-                        `#grapql
-                            mutationUpdateQueue($metafields: [MetafieldsSetInput!]!) {
-                                metafieldsSet(metafields: $metafields) {
-                                    updatedAt
-                                }
-                                userErrors {
-                                    field
-                                    message
-                                }
-                            }
-                        `,
-                        {
-                            variables: {
-                                metafields: [
-                                    {
-                                        ownerId: result.data.shop.queue.di,
-                                        key: "ai_queue",
-                                        value: JSON.stringify(newQueue)
-                                    }
-                                ]
-                            }
-                        }
-                    );
-
-                    const updateResult = await updateResponse.json();
-
-                    if (updateResult.data.metafieldsSet.userErrors.length > 0) {
-                        for (let i = 0; i < updateResult.data.metafieldsSet.userErrors.length; i++) {
-                            ITErrors.push({
-                                code: sku,
-                                message: `AI QUEUE | ${updateResult.data.metafieldsSet.userErrors[i].field}- ${updateResult.data.metafieldsSet.userErrors[i].message}`
-                            })
-                        }
-                    }
-                }
-            }
         }
 
         const channels: Channel[] = [];
@@ -1266,19 +1158,97 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
         }
     }
 
-    console.log("==========================================================================================");
-    console.log("IT ERRORS");
-    console.log("==========================================================================================");
-    console.log(ITErrors);
-    console.log("==========================================================================================");
-    console.log("==========================================================================================");
-    console.log("==========================================================================================");
-    console.log("STATUS UPDATE");
-    console.log("==========================================================================================");
-    console.log(productStatus.concat(ImageCountErrors));
-    console.log("==========================================================================================");
-    console.log("==========================================================================================");
-    console.log("==========================================================================================");
+    const getShopMetafieldsResponse = await admin.graphql(
+        `#graphql
+            query ShopMetafields {
+                shop {
+                    id
+                    itErrors: metafield(namespace: "custom", key: "it_errors") {
+                        value
+                    }
+                    productStatus: metafield(namespace: "custom", key: "product_status") {
+                        value
+                    }
+                }
+            }
+        `,
+        {
+
+        }
+    );
+
+    const getShopMetafieldsResult = await getShopMetafieldsResponse.json();
+
+    const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
+    newITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
+
+    const newProductStatus = [...JSON.parse(getShopMetafieldsResult.data.shop.productStatus.value)];
+    newProductStatus.concat(productStatus.map(error => `[${error.code}] ${error.message}`));
+
+    const metafieldUpdateResponse = await admin.graphql(
+        `#graphql
+            mutation MetafieldUpdates($metafields: [MetafieldsSetInput!]!) {
+                metafieldsSet(metafields: $metafields) {
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        `,
+        {
+            variables: {
+                metafields: [
+                    {
+                        ownerId: getShopMetafieldsResult.data.shop.id,
+                        namespace: "custom",
+                        key: "it_errors",
+                        value: JSON.stringify(newITErrors)
+                    },
+                    {
+                        ownerId: getShopMetafieldsResult.data.shop.id,
+                        namespace: "custom",
+                        key: "product_status",
+                        value: JSON.stringify(newProductStatus)
+                    }
+                ]
+            }
+        }
+    );
+
+    const metafieldUpdateResult = await metafieldUpdateResponse.json();
+
+    if (metafieldUpdateResult.data.userErrors.length > 0) {
+        for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
+            console.log(`[${metafieldUpdateResult.data.userErrors[i].field}] ${metafieldUpdateResult.data.userErrors[i].message}`)
+        }
+    }
+
+    const deleteResponse = await admin.graphql(
+        `#graphql
+            mutation DeleteFeed($id: ID!) {
+                metaobjectDelete(id: $id) {
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        `,
+        {
+            variables: {
+                id: feedID
+            }
+        }
+    );
+
+    const deleteResult = await deleteResponse.json();
+
+    if (deleteResult.data.userErrors.length > 0) {
+        for (let i = 0; i < deleteResult.data.userErrors; i++) {
+            console.log(`[${deleteResult.data.userErrors[i].field}] ${deleteResult.data.userErrors[i].message}`)
+        }
+    }
 
     return new Response(
         `OK - Data Processing Complete`, 

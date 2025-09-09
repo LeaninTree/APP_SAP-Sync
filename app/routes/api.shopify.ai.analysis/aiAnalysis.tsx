@@ -1,7 +1,6 @@
 import { AdminApiContextWithoutRest } from "node_modules/@shopify/shopify-app-remix/dist/ts/server/clients";
 import { Type, createUserContent, GoogleGenAI, PartListUnion } from "@google/genai"
-import { SAPProduct, Recipient } from "../webhooks.sap.feed/sapData.handler";
-import { ShopifyProduct } from "../webhooks.sap.feed/shopifyData.handler";
+import { ShopifyProduct } from "./route";
 
 interface AIMedia {
     name: string;
@@ -27,10 +26,10 @@ export interface AIResponse {
     recipient: AIRecipient | null;
 }
 
-export async function runAIAnalysis(admin: AdminApiContextWithoutRest, shopifyProductData: ShopifyProduct, sapProductData: SAPProduct, typeName: string, occasionName: string): Promise<string> {
+export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: ShopifyProduct, toneList: string[], genderedList: string[], groupList: string[]): Promise<string> {
     const ai = new GoogleGenAI({});
 
-    const strippedURLs = shopifyProductData.media.map(media => {
+    const strippedURLs = product.media.map(media => {
         const segments = media.url.split('/');
         const finalSegment = segments[segments.length - 1];
         const paramsIndex = finalSegment.indexOf("?");
@@ -38,86 +37,12 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, shopifyPr
             return finalSegment.substring(0, paramsIndex);
         }
         return finalSegment;
-    });
+    }); 
 
-    let toneList: String[] = [];
-    const toneListResponse = await admin.graphql(
-        `#graphql
-            query ToneMetafield($ownerType: MetafieldOwnerType!) {
-                metafieldDefinition(identifier: {ownerType: $ownerType, namespace: "custom", key: "tone"}) {
-                    validations {
-                        name
-                        value
-                    }
-                }
-            }
-        `,
-        {
-            variables: {
-                ownerType: "PRODUCT"
-            }
-        }
-    );
-    const toneListResult = await toneListResponse.json();
-    if (toneListResult.data.metafieldDefinition.validations.length > 0 ) {
-        for (let i = 0; i < toneListResult.data.metafieldDefinition.validations.length; i++) {
-            if (toneListResult.data.metafieldDefinition.validations[i].name === "choices") {
-                toneList = toneListResult.data.metafieldDefinition.validations[i].value;
-            }
-        }
-    }
-
-    const genderedList: String[] = [];
-    const groupList: String[] = [];
-    const recipientListResponse = await admin.graphql(
-        `#graphql
-            query RecipientMetaobject($type: String!) {
-                metaobjectDefinitionByType(type: $type) {
-                    fieldDefinitions {
-                        key
-                        validations {
-                            name
-                            value
-                        }
-                    }
-                }
-            }
-        `,
-        {
-            variables: {
-                type: "recipient"
-            }
-        }
-    );
-    const recipientListResult = await recipientListResponse.json();
-    for (let i = 0; i < recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions.length; i++) {
-        if (recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].key == "gendered") {
-            for (let j = 0; j < recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].validations.length; j++) {
-                if (recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].validations[j].name === "choices") {
-                    const list = JSON.parse(recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].validations[j].value);
-                    for (const item in list) {
-                        genderedList.push(list[item]);
-                    }
-                    break;
-                }
-            }
-        } else if (recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].key == "group") {
-            for (let j = 0; j < recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].validations.length; j++) {
-                if (recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].validations[j].name === "choices") {
-                    const list = JSON.parse(recipientListResult.data.metaobjectDefinitionByType.fieldDefinitions[i].validations[j].value);
-                    for (const item in list) {
-                        groupList.push(list[item]);
-                    }
-                    break;
-                }
-            }
-        }
-    } 
-
-    const typePrompt = `The images provided are product images for a ${typeName}.`;
+    const typePrompt = `The images provided are product images for a ${product.productType}.`;
     const recipientPrompt = `From the following list, which gender best describes the recipient: ${JSON.stringify(genderedList)}. From the following list, which group best describes the recipient: ${JSON.stringify(groupList)}. Is this product made to be given to a kid?`;
     const tonePrompt = `From the following list, pick which tone best describes the product: ${JSON.stringify(toneList)}.`;
-    const titlePrompt = `Provide a product title that is SEO optimized based on the title "${sapProductData.title}", adding in ${occasionName}, clean up the title to make it human readable.`;
+    const titlePrompt = `Provide a product title that is SEO optimized based on the title "${product.sapTitle}", adding in ${product.occasion}, clean up the title to make it human readable.`;
     const desciptionPrompt = `Create a ecommerce focused description for the product.`;
     const metaDescriptionPrompt = `Create SEO optimized meta-description for the product that is between 140 and 160 characters.`;
     const keywordsPrompt = `Generate a list of at least 50 but no more then 90, keywords for the product optimized for SEO to allow the product to be searchable.`;
@@ -126,13 +51,13 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, shopifyPr
 
     const content: PartListUnion = [{text: `${typePrompt} ${recipientPrompt} ${tonePrompt} ${titlePrompt} ${desciptionPrompt} ${metaDescriptionPrompt} ${keywordsPrompt} ${altTextPrompt} ${crudePrompt}`}];
     
-    for (let i = 0; i < shopifyProductData.media.length; i++) {
-            const response = await fetch(shopifyProductData.media[i].url);
+    for (let i = 0; i < product.media.length; i++) {
+            const response = await fetch(product.media[i].url);
             const imageArrayBuffer = await response.arrayBuffer();
             const base64ImageData = Buffer.from(imageArrayBuffer).toString('base64');
             content.push({
                 inlineData: {
-                    mimeType: shopifyProductData.media[i].mimeType,
+                    mimeType: product.media[i].mimeType,
                     data: base64ImageData
                 }
         });                            
@@ -215,7 +140,7 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, shopifyPr
         return aiResponse;
     }
 
-    let aiJson = null; //TODO add type
+    let aiJson = null;
 
     if (aiResponse && aiResponse.text) {
         aiJson = JSON.parse(aiResponse.text);
