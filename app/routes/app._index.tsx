@@ -101,11 +101,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
     };
   }
 
-  return {productFeed: productFeed, definitions: definitions}
+  const aiResponse = await admin.graphql(
+    `#graphql
+      query GetAIQueue {
+        shop {
+          queue: metafield(namespace: "custom", key: "ai_queue") {
+            value
+            updatedAt
+          }
+        }
+      }
+    `,
+    {
+
+    }
+  );
+
+  const aiResult = await aiResponse.json();
+
+  let ai: {queue: string[]; updatedAt: Date | null;} ={
+    queue: [],
+    updatedAt: null
+  };
+  if (aiResult.data.shop.queue) {
+    ai.queue = JSON.parse(aiResult.data.shop.queue.value);
+    ai.updatedAt = new Date(aiResult.data.shop.queue.updatedAt);
+  }
+
+  return {productFeed: productFeed, definitions: definitions, aiQueue: ai}
 }
 
 export default function Index() {
-  const {productFeed, definitions} = useLoaderData<typeof loader>();
+  const {productFeed, definitions, aiQueue} = useLoaderData<typeof loader>();
 
   const [definitionOpen, setDefinitionOpen] = useState(false);
 
@@ -175,7 +202,7 @@ export default function Index() {
                     tone={productFeed.updateCount === 0 ? "success" : (productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp) ? "critical" : "attention"}
                     progress={productFeed.updateCount === 0 ? "complete" : (productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp) ? "incomplete" : "partiallyComplete"}
                   >
-                    {productFeed.updateCount === 0 ? "No Action" : (productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp) ? "Potential Error" : "In Progress"}
+                    {productFeed.updateCount === 0 ? "Standby" : (productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp) ? "Unprocessed File" : "In Progress"}
                   </Badge>
                 </InlineStack>
                 {productFeed.updateCount > 0 ?
@@ -184,6 +211,27 @@ export default function Index() {
                     <Text variant="bodyLg" as="p"><b>Most Recent File Upload:</b> {productFeedLatestUpdateTimestamp.toLocaleString()}</Text>
                     {productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp ?
                       <Text variant="bodyLg" as="p">Oldest Unprocessed File: {productFeedOldestUpdateTimestamp.toLocaleString()}</Text>
+                    : null}
+                  </>
+                : null}
+              </BlockStack>
+            </Card>
+            <Card>
+              <BlockStack gap="300">
+                <InlineStack gap="300">
+                  <Text variant="headingLg" as="h3">AI Analysis Status</Text>
+                  <Badge
+                    tone={aiQueue.queue.length === 0 ? "success" : "attention"}
+                    progress={aiQueue.queue.length === 0 ? "complete" : "partiallyComplete"}
+                  >
+                    {aiQueue.queue.length === 0 ? "Standby" : "In Progress"}
+                  </Badge>
+                </InlineStack>
+                {aiQueue.queue.length > 0 ?
+                  <>
+                    <Text variant="bodyLg" as="p"><b>Products pending processing:</b> {aiQueue.queue.length}</Text>
+                    {aiQueue.updatedAt ? 
+                      <Text variant="bodyLg" as="p"><b>Most Recent Product Added to Queue:</b> {aiQueue.updatedAt.toLocaleString()}</Text>
                     : null}
                   </>
                 : null}

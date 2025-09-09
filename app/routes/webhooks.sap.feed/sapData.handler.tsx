@@ -919,21 +919,65 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             uploadVariants.push(tempVariant);
         }
 
-        let aiData = JSON.parse(shopifyProductData.aiData);
-        if (!aiData || (shopifyProductData.latestMediaUpdate > call24HoursAgo)) {
+        if (!JSON.parse(shopifyProductData.aiData) || (shopifyProductData.latestMediaUpdate > call24HoursAgo)) {
             if (typeName && occasionName) {
-                const aiResponse = await runAIAnalysis(admin, shopifyProductData, sapProductData, typeName, occasionName);
-                if (JSON.parse(aiResponse).error) {
-                    ITErrors.push({
-                        code: sku,
-                        message: aiResponse
-                    });
-                } else {
-                    aiData = JSON.parse(aiResponse);
-                    productStatus.push({
-                        code: sku,
-                        message: "AI ANALYSIS | AI analysis has been completed."
-                    });
+                const response = await admin.graphql(
+                    `#graphql
+                        query GetCurrentAIQueue {
+                            shop {
+                                queue: metafield(namespace: "custom", key: "ai_queue") {
+                                    value
+                                    id
+                                }
+                            }
+                        }
+                    `,
+                    {
+
+                    }
+                );
+
+                const result = await response.json();
+
+                const newQueue: string[] = [...JSON.parse(result.data.shop.queue.value)];
+
+                if (!newQueue.includes(shopifyProductData.id)) {
+                    newQueue.push(shopifyProductData.id);
+                    const updateResponse = await admin.graphql(
+                        `#grapql
+                            mutationUpdateQueue($metafields: [MetafieldsSetInput!]!) {
+                                metafieldsSet(metafields: $metafields) {
+                                    updatedAt
+                                }
+                                userErrors {
+                                    field
+                                    message
+                                }
+                            }
+                        `,
+                        {
+                            variables: {
+                                metafields: [
+                                    {
+                                        ownerId: result.data.shop.queue.di,
+                                        key: "ai_queue",
+                                        value: JSON.stringify(newQueue)
+                                    }
+                                ]
+                            }
+                        }
+                    );
+
+                    const updateResult = await updateResponse.json();
+
+                    if (updateResult.data.metafieldsSet.userErrors.length > 0) {
+                        for (let i = 0; i < updateResult.data.metafieldsSet.userErrors.length; i++) {
+                            ITErrors.push({
+                                code: sku,
+                                message: `AI QUEUE | ${updateResult.data.metafieldsSet.userErrors[i].field}- ${updateResult.data.metafieldsSet.userErrors[i].message}`
+                            })
+                        }
+                    }
                 }
             }
         }
@@ -1035,6 +1079,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
         }
 
         const shopifyAiData = JSON.parse(shopifyProductData.aiData); //TODO add type 
+        let aiData = JSON.parse(shopifyProductData.aiData);
 
         const tempTitle: string = aiData && aiData.title ? aiData.title : sapProductData.title;
 
@@ -1230,7 +1275,6 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                     id: shopifyProductData.id,
                     product: {
                         vendor: brandName,
-                        status: "ACTIVE",
                         productType: typeName,
                         category: `gid://shopify/TaxonomyCategory/${taxonomyString}`,
                         productOptions: [{
@@ -1241,7 +1285,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                         title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
                         seo: {
                             title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
-                            description: !shopifyAiData || shopifyProductData.metaDescription === shopifyAiData.metaDescription ? aiData.metaDescription : shopifyProductData.metaDescription
+                            description: !shopifyAiData || (shopifyProductData.metaDescription && shopifyProductData.metaDescription === shopifyAiData.metaDescription) ? aiData.metaDescription : shopifyProductData.metaDescription
                         },
                         descriptionHtml: !shopifyAiData || shopifyProductData.description === shopifyAiData.description ? aiData.description : shopifyProductData.description,
                         metafields: productMetafields
