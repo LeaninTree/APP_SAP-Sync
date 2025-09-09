@@ -1256,10 +1256,6 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             });
         }
 
-        console.log("SHOPIFY", shopifyProductData);
-        console.log("SHOPIFY AI", shopifyAiData);
-        console.log("AI", aiData);
-
         const updateProductResponse = await admin.graphql(
             `#graphql
                 mutation updateProduct($product: ProductSetInput!, $id: ID!) {
@@ -1289,7 +1285,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                         title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
                         seo: {
                             title: !shopifyAiData || shopifyProductData.title === shopifyAiData.title ? tempTitle : shopifyProductData.title,
-                            description: !shopifyAiData || shopifyProductData.metaDescription ? shopifyProductData.metaDescription === shopifyAiData.metaDescription ? aiData.metaDescription : shopifyProductData.metaDescription : ""
+                            description: !shopifyAiData || shopifyProductData.metaDescription && shopifyAiData ? shopifyProductData.metaDescription === shopifyAiData.metaDescription ? shopifyAiData.metaDescription : shopifyProductData.metaDescription : ""
                         },
                         descriptionHtml: !shopifyAiData || shopifyProductData.description === shopifyAiData.description ? aiData.description : shopifyProductData.description,
                         metafields: productMetafields
