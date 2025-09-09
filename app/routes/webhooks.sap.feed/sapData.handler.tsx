@@ -1256,7 +1256,9 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             });
         }
 
-        console.log()
+        console.log("SHOPIFY", shopifyProductData);
+        console.log("SHOPIFY AI", shopifyAiData);
+        console.log("AI", aiData);
 
         const updateProductResponse = await admin.graphql(
             `#graphql
