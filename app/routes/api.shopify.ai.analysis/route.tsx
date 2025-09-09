@@ -1,6 +1,6 @@
 import { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "app/shopify.server";
-import { runAIAnalysis } from "./webhooks.sap.feed/aiAnalysis";
+import { runAIAnalysis } from "./aiAnalysis";
 
 export async function action({ request }: ActionFunctionArgs) {
     /*const { admin, payload} = await authenticate.flow(request);

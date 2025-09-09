@@ -119,6 +119,18 @@ interface UploadMedia {
     alt: string;
 }
 
+interface UploadProduct {
+    productOptions: {
+        name: string;
+        values: Channel[]
+    }[];
+    variants: UploadVariant[];
+    metafields: Metafield[];
+    category?: string;
+    vendor?: string;
+    productType?: string;
+}
+
 export async function handleProductFeed(admin: AdminApiContextWithoutRest, data: any[]) {
     const callStartTime = Date.now();
     const twentyFourHoursAgo = callStartTime - (24 * 60 * 60 * 1000);
@@ -189,7 +201,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             continue;
         }
 
-        let brandName: String | null = null;
+        let brandName: string | null = null;
         if (brandCache.get(sapProductData.brand)) {
             if ((brandCache.get(sapProductData.brand) as Brand).name) {
                 brandName = (brandCache.get(sapProductData.brand) as Brand).name;
@@ -1199,6 +1211,27 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             });
         }
 
+        let product: UploadProduct = {
+            productOptions: [{
+                name: "Channels",
+                values: channels
+            }],
+            variants: formatedVariants,
+            metafields: productMetafields
+        }
+        
+        if (taxonomyString) {
+            product.category = `gid://shopify/TaxonomyCategory/${taxonomyString}`;
+        }
+
+        if (brandName) {
+            product.vendor = brandName;
+        }
+
+        if (typeName) {
+            product.productType = typeName;
+        }
+
         const updateProductResponse = await admin.graphql(
             `#graphql
                 mutation updateProduct($product: ProductSetInput!, $id: ID!) {
@@ -1216,17 +1249,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             {
                 variables: {
                     id: shopifyProductData.id,
-                    product: {
-                        vendor: brandName,
-                        productType: typeName,
-                        category: `gid://shopify/TaxonomyCategory/${taxonomyString}`,
-                        productOptions: [{
-                            name: "Channels",
-                            values: channels
-                        }],
-                        variants: formatedVariants,
-                        metafields: productMetafields
-                    }
+                    product: product
                 }
             }
         );

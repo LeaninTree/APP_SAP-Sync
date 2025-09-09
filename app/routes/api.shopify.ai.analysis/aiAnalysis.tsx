@@ -1,7 +1,7 @@
 import { AdminApiContextWithoutRest } from "node_modules/@shopify/shopify-app-remix/dist/ts/server/clients";
 import { Type, createUserContent, GoogleGenAI, PartListUnion } from "@google/genai"
-import { SAPProduct, Recipient } from "./sapData.handler";
-import { ShopifyProduct } from "./shopifyData.handler";
+import { SAPProduct, Recipient } from "../webhooks.sap.feed/sapData.handler";
+import { ShopifyProduct } from "../webhooks.sap.feed/shopifyData.handler";
 
 interface AIMedia {
     name: string;
