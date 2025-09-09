@@ -27,6 +27,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@shopify/polaris-icons';
 import { TabReply, DefinitionPreview } from "./api.shopify.$definitionType.get";
 import { DefinitionReply } from "./api.shopify.metaobject.get.$id";
+import { ActionResponse } from "./api.shopify.metaobject.create.$type";
 
 export default function Index() {
     const [selectedTab, setSelectedTab] = useState(0);
@@ -174,8 +175,13 @@ export default function Index() {
     };
 
     useEffect(() => {
+        const data = actionFetcher.data as ActionResponse;
+        if (data !== undefined && data.id !== undefined) {
+            setSelectedDefinition(data.id);
+        } else {
+            setSelectedDefinition(null);
+        }
         console.log("SET1")
-        setSelectedDefinition(null);
         setCurrentDefinition(null);
         setOriginalDefinition(null);
         setCurrentValidations([]);
@@ -345,6 +351,10 @@ export default function Index() {
         }
     }
 
+    const handleAddNewDefinition = () => {
+        actionFetcher.load(`/api/shopify/metaobject/create/${tabs[selectedTab].id}`);
+    };
+
     return (
         <Page 
             fullWidth
@@ -381,7 +391,7 @@ export default function Index() {
                                                     hideFilters
                                                     queryValue={queryValue}
                                                 />
-                                                {/* //TODO <Button variant={"primary"}>Add New</Button>*/}
+                                                <Button variant={"primary"} onClick={() => handleAddNewDefinition()}>Add New</Button>
                                             </InlineGrid>
                                         }
                                         renderItem={(item: DefinitionPreview) => {

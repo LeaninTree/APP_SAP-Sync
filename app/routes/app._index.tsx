@@ -75,7 +75,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const response = await admin.graphql(
       `#graphql
         query GetUndefinedMetaobjects($type: String!) {
-          metaobjects(type: $type, first: 25, query: "NOT fields.definition:true") {
+          metaobjects(type: $type, first: 25, query: "fields.definition:false") {
             pageInfo {
               hasNextPage
             }

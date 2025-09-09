@@ -634,7 +634,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                                     handle: process,
                                     fields: [
                                         {
-                                            key: "code",
+                                            key: "manufacturing_code",
                                             value: process
                                         },
                                         {
