@@ -924,42 +924,42 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                 variantMetafields.push({
                     namespace: "custom",
                     key: "active_date",
-                    value: variant.activeDate.toISOString()
+                    value: variant.activeDate ? variant.activeDate.toISOString() : null
                 });
             }
             if (variant.nLADate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "nla_date",
-                    value: variant.nLADate.toISOString()
+                    value: variant.nLADate ? variant.nLADate.toISOString() : null
                 });
             }
             if (variant.oWODate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "owo_date",
-                    value: variant.oWODate.toISOString()
+                    value: variant.oWODate ? variant.oWODate.toISOString() : null
                 });
             }
             if (variant.vBPDate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "vbp_date",
-                    value: variant.vBPDate.toISOString()
+                    value: variant.vBPDate ? variant.vBPDate.toISOString() : null
                 });
             }
             if (variant.tempOutDate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "temp_out_date",
-                    value: variant.tempOutDate.toISOString()
+                    value: variant.tempOutDate ? variant.tempOutDate.toISOString() : null
                 });
             }
             if (variant.introDate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "intro_date",
-                    value: variant.introDate.toISOString()
+                    value: variant.introDate ? variant.introDate.toISOString() : null
                 });
             }
 
