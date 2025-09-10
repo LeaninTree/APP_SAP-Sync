@@ -21,13 +21,24 @@ metaobject: {
     fields: [
         {
             key: "data",
-            value: //JSON DATA HERE//
+            value: {//JSON DATA HERE//}
         },
-        [
+        {
             key: "datetime",
             value: //ISO DATETIME STRING (OR IF NOT POSSIBLE SOME OTHER UNIQUE STRING)//
-        ]
+        }
     ]
 }
+
+metaobject: {
+    type: "sap_feed",
+    fields: [
+        {
+            key: "data",
+            value: //JSON DATA HERE//
+        }
+    ]
+}
+
 
 */

@@ -25,6 +25,11 @@ api_version = "2025-10"
   uri = "/webhooks/sap/feed"
   filter = "type:product_feed"
 
+  [[webhooks.subscriptions]]
+  topics = ["metaobjects/update"]
+  uri = "/webhooks/shopify/definition/update"
+  filter = "type:brand OR type:category OR type:occasion"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products, read_metaobjects, write_inventory, read_metaobject_definitions, write_files, read_locations, write_metaobjects, write_metaobject_definitions"
