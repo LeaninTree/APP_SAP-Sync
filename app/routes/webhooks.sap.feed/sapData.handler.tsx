@@ -998,7 +998,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                 value: orientation
             });
         }
-        console.log("TEST1");
+        
         if (processArray.length > 0) {
             productMetafields.push({
                 namespace: "custom",
@@ -1146,7 +1146,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             }
         );
         const updateProductResult = await updateProductResponse.json();
-        console.log("TEST 2");
+        
         if (updateProductResult.data.productSet.userErrors.length > 0) {
             updateProductResult.data.productSet.userErrors.forEach((error: any) => {
                 ITErrors.push({
@@ -1217,10 +1217,10 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
     );
 
     const metafieldUpdateResult = await metafieldUpdateResponse.json();
-    console.log("TEST 3");
-    if (metafieldUpdateResult.data.userErrors.length > 0) {
-        for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
-            console.log(`[${metafieldUpdateResult.data.userErrors[i].field}] ${metafieldUpdateResult.data.userErrors[i].message}`)
+    
+    if (metafieldUpdateResult.data.metafieldsSet.userErrors.length > 0) {
+        for (let i = 0; i < metafieldUpdateResult.data.metafieldsSet.userErrors; i++) {
+            console.log(`[${metafieldUpdateResult.data.metafieldsSet.userErrors[i].field}] ${metafieldUpdateResult.data.metafieldsSet.userErrors[i].message}`)
         }
     }
 
@@ -1243,10 +1243,9 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
     );
 
     const deleteResult = await deleteResponse.json();
-    console.log("TEST 4");
-    if (deleteResult.data.userErrors.length > 0) {
-        for (let i = 0; i < deleteResult.data.userErrors; i++) {
-            console.log(`[${deleteResult.data.userErrors[i].field}] ${deleteResult.data.userErrors[i].message}`)
+    if (deleteResult.data.metaobjectDelete.userErrors.length > 0) {
+        for (let i = 0; i < deleteResult.data.metaobjectDelete.userErrors; i++) {
+            console.log(`[${deleteResult.data.metaobjectDelete.userErrors[i].field}] ${deleteResult.data.metaobjectDelete.userErrors[i].message}`)
         }
     }
 
@@ -1281,7 +1280,6 @@ function findMostRecentPastDate(date1: Date | null, date2: Date | null, date3: D
     }
 
     const pastDates = dates.filter(date => date < now);
-    console.log("TEST 5");
     if (pastDates.length === 0) {
         return null;
     }
