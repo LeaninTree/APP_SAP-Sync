@@ -956,6 +956,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                 });
             }
             if (variant.introDate) {
+                console.log("INTRO DATE", variant.introDate)
                 variantMetafields.push({
                     namespace: "custom",
                     key: "intro_date",
