@@ -9,7 +9,7 @@ export async function action({ request }: ActionFunctionArgs) {
         throw new Response("Unauthorized", { status: 401 });
     }
 
-    if (payload.type === "product_feed") {
+    if (payload.type === "sap_feed") {
         const response = handleProductFeed(admin, JSON.parse(payload.fields.data), payload.id);
         return new Response("Ok", { status: 200 });
     }
