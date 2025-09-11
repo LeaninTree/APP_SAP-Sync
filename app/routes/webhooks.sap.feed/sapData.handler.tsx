@@ -787,22 +787,22 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
             if (variant.date_code) {
                 switch (variant.date_code) {
                     case "01":
-                        activeDate = new Date(variant.date);
+                        activeDate = convertYYYYMMDDtoDate(variant.date);
                         break;
                     case "02":
-                        nLADate = new Date(variant.date);
+                        nLADate = convertYYYYMMDDtoDate(variant.date);
                         break;
                     case "03":
-                        oWODate = new Date(variant.date);
+                        oWODate = convertYYYYMMDDtoDate(variant.date);
                         break;
                     case "04":
-                        vBPDate = new Date(variant.date);
+                        vBPDate = convertYYYYMMDDtoDate(variant.date);
                         break;
                     case "05":
-                        tempOutDate = new Date(variant.date);
+                        tempOutDate = convertYYYYMMDDtoDate(variant.date);
                         break;
                     case "06":
-                        introDate = new Date(variant.date);
+                        introDate = convertYYYYMMDDtoDate(variant.date);
                     default:
                         ITErrors.push({
                             code: `${sku}-${variant.name}`,
@@ -924,35 +924,35 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                 variantMetafields.push({
                     namespace: "custom",
                     key: "active_date",
-                    value: variant.activeDate ? variant.activeDate.toISOString() : null
+                    value: variant.activeDate.toISOString()
                 });
             }
             if (variant.nLADate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "nla_date",
-                    value: variant.nLADate ? variant.nLADate.toISOString() : null
+                    value: variant.nLADate.toISOString()
                 });
             }
             if (variant.oWODate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "owo_date",
-                    value: variant.oWODate ? variant.oWODate.toISOString() : null
+                    value: variant.oWODate.toISOString()
                 });
             }
             if (variant.vBPDate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "vbp_date",
-                    value: variant.vBPDate ? variant.vBPDate.toISOString() : null
+                    value: variant.vBPDate.toISOString()
                 });
             }
             if (variant.tempOutDate) {
                 variantMetafields.push({
                     namespace: "custom",
                     key: "temp_out_date",
-                    value: variant.tempOutDate ? variant.tempOutDate.toISOString() : null
+                    value: variant.tempOutDate.toISOString()
                 });
             }
             if (variant.introDate) {
@@ -960,7 +960,7 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
                 variantMetafields.push({
                     namespace: "custom",
                     key: "intro_date",
-                    value: variant.introDate ? variant.introDate.toISOString() : null
+                    value: variant.introDate.toISOString()
                 });
             }
 
@@ -1290,4 +1290,12 @@ function findMostRecentPastDate(date1: Date | null, date2: Date | null, date3: D
     pastDates.sort((a, b) => b.getTime() - a.getTime());
 
     return pastDates[0];
+}
+
+function convertYYYYMMDDtoDate(yyyymmddString: string): Date {
+    const year = parseInt(yyyymmddString.substring(0, 4), 10);
+    const month = parseInt(yyyymmddString.substring(4, 6), 10) - 1;
+    const day = parseInt(yyyymmddString.substring(6, 8), 10);
+
+    return new Date(year, month, day);
 }
