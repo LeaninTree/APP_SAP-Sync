@@ -23,7 +23,7 @@ api_version = "2025-10"
   [[webhooks.subscriptions]]
   topics = [ "metaobjects/update", "metaobjects/create" ]
   uri = "/webhooks/sap/feed"
-  filter = "type:product_feed"
+  filter = "type:sap_feed"
 
   [[webhooks.subscriptions]]
   topics = ["metaobjects/update"]

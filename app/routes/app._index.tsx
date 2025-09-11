@@ -41,8 +41,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const result = await response.json()
 
-  const latestUpdate: string = result.data.metaobjects.nodes[0].updatedAt;
-  const oldestUpdate: string = result.data.metaobjects.nodes[result.data.metaobjects.nodes.length - 1].updatedAt;
+  const latestUpdate: string = result.data.metaobjects.nodes.length > 0 ? result.data.metaobjects.nodes[0].updatedAt : "";
+  const oldestUpdate: string = result.data.metaobjects.nodes.length > 0 ? result.data.metaobjects.nodes[result.data.metaobjects.nodes.length - 1].updatedAt : "";
   const updateCount: number = result.data.metaobjects.nodes.length;
 
   const productFeed = {latestUpdate, oldestUpdate, updateCount};
