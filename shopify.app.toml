@@ -30,6 +30,19 @@ api_version = "2025-10"
   uri = "/webhooks/shopify/definition/update"
   filter = "type:brand OR type:category OR type:occasion"
 
+  [[webhooks.subscriptions]]
+  topics = [ "products/update" ]
+  uri = "/webhooks/shopify/image/update"
+  include_fields = [
+    "admin_graphql_api_id",
+    "media.created_at",
+    "mediaCount",
+    "metafields.namespace",
+    "metafields.key",
+    "metafields.value",
+    "created_at"
+  ]
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products, read_metaobjects, write_inventory, read_metaobject_definitions, write_files, read_locations, write_metaobjects, write_metaobject_definitions"

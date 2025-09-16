@@ -1,0 +1,16 @@
+[[extensions]]
+name = "AI Analysis"
+handle = "ai-analysis"
+type = "flow_action"
+uid = "d7184172-26d5-cf36-a550-cb04af6bd511fb80032b"
+description = "Take a list of product IDs (Up to 10 Products) and analysis them with AI."
+runtime_url = "https://lt-sap-sync.onrender.com/api/shopify/ai/analysis"
+
+[settings]
+
+  [[settings.fields]]
+  type = "single_line_text_field"
+  key = "queue"
+  name = "Product List"
+  description = "Array of Product IDs as a String"
+  required = true
