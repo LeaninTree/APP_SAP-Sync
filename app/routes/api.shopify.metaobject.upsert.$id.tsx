@@ -33,6 +33,14 @@ export async function action({request, params}: ActionFunctionArgs) {
         type: "boolean"
     })
 
+    for (let i = 0; i < fields.length; i++) {
+        if (fields[i].value === "NULL") {
+            fields.splice(i, 1);
+        }
+    }
+
+    //loop through if field value === "NULL" pop out of list
+
     const upsertResponse = await admin.graphql(
         `#graphql
             mutation UpsertMetaobject($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {

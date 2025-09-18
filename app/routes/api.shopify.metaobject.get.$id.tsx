@@ -95,6 +95,12 @@ export async function loader({request, params}: LoaderFunctionArgs) {
                 label: definition.displayName,
                 value: definition.id
             }));
+            if (field.key === "assortment" && tempField.options) {
+                tempField.options = [{
+                    label: "",
+                    value: "NULL"
+                }, ...tempField.options];
+            }
         }
 
         if (field.type === "file_reference" && field.value !== null) {

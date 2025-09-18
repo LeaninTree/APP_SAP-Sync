@@ -1177,6 +1177,14 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
         }
     );
 
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+    console.log(ITErrors);
+    console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    console.log(productStatus);
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+
     const getShopMetafieldsResult = await getShopMetafieldsResponse.json();
 
     const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];

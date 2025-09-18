@@ -51,9 +51,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     artist: {
       name: "Artists"
     },
-    assortment: {
-      name: "Assortments"
-    },
     brand: {
       name: "Brands"
     },
@@ -63,12 +60,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     occasion: {
       name: "Occasion Prefixes"
     },
-    process: {
+    processes: {
       name: "Processes"
     },
-    size: {
-      name: "Sizes"
-    }
   }
 
   for (const key in definitions) {
@@ -147,25 +141,26 @@ export default function Index() {
     <Page fullWidth>
       <Layout>
         <Layout.Section>
-          <Card>
+          <Card key="1-1">
             <BlockStack gap="300">
-              <InlineGrid columns={["twoThirds", "oneThird"]}>
-                <Text variant="headingLg" as="h3">Definitions</Text>
-                <InlineStack direction="row-reverse">
+              <InlineGrid columns={["twoThirds", "oneThird"]} key="1-1-1">
+                <Text variant="headingLg" as="h3" key="1-1-1-1">Definitions</Text>
+                <InlineStack direction="row-reverse" key="1-1-1-2">
                   <Button
                   onClick={() => setDefinitionOpen(!definitionOpen)}
                   ariaExpanded={definitionOpen}
                   ariaControls="definition-collapsible"
+                  key="1-1-1-2-1"
                   >
                     { definitionOpen ? "Collapse" : "Expand" }
                   </Button>
                 </InlineStack>
               </InlineGrid>
-              <InlineGrid columns={Object.keys(definitions).length}>
-                {Object.keys(definitions).map(key => (
-                  <BlockStack gap="200" inlineAlign="center">
-                    <Text variant="bodyLg" as="p"><b>{ definitions[key]?.name }</b></Text>
-                    <Badge tone={definitions[key]?.badge === "No Warnings" ? "success" : "warning"}>{ definitions[key]?.badge }</Badge>
+              <InlineGrid columns={Object.keys(definitions).length} key="1-1-2">
+                {Object.keys(definitions).map((key, i) => (
+                  <BlockStack gap="200" inlineAlign="center" key={`1-1-2-${i}`}>
+                    <Text variant="bodyLg" as="p" key={`1-1-2-${i}-1`}><b>{ definitions[key]?.name }</b></Text>
+                    <Badge tone={definitions[key]?.badge === "No Warnings" ? "success" : "warning"} key={`1-1-2-${i}-2`}>{ definitions[key]?.badge }</Badge>
                   </BlockStack>
                 ))}
               </InlineGrid>
@@ -174,16 +169,17 @@ export default function Index() {
                 transition={{duration: '500ms', timingFunction: 'ease-in-out'}}
                 expandOnPrint
                 id="definition-collapsible"
+                key="1-1-3"
               >
-                <Divider />
-                <InlineGrid columns={Object.keys(definitions).length}>
-                  {Object.keys(definitions).map(key => (
-                    <BlockStack gap="200" inlineAlign="center">
-                      {definitions[key].list?.map(item => (
-                        <Text variant="bodyMd" as="p">{ item }</Text>
+                <Divider key="1-1-3-1" />
+                <InlineGrid columns={Object.keys(definitions).length} key="1-1-3-2">
+                  {Object.keys(definitions).map((key, i) => (
+                    <BlockStack gap="200" inlineAlign="center" key={`1-1-3-2-${i}`}>
+                      {definitions[key].list?.map((item, j) => (
+                        <Text variant="bodyMd" as="p" key={`1-1-3-2-${i}-${j}`}>{ item }</Text>
                       ))}
                       {definitions[key].list && definitions[key].list.length > 25 ? 
-                        <Text variant="bodySm" as="p">...</Text>
+                        <Text variant="bodySm" as="p" key={`1-1-3-2-${i}-x`}>...</Text>
                       : null}
                     </BlockStack>
                   ))}
@@ -194,70 +190,72 @@ export default function Index() {
         </Layout.Section>
         <Layout.Section variant="oneThird">
           <BlockStack gap="500">
-            <Card>
+            <Card key="2-1">
               <BlockStack gap="300">
-                <InlineStack gap="300">
-                  <Text variant="headingLg" as="h3">Product Feed Status</Text>
+                <InlineStack gap="300" key="2-1-1">
+                  <Text variant="headingLg" as="h3" key="2-1-1-1">Product Feed Status</Text>
                   <Badge 
                     tone={productFeed.updateCount === 0 ? "success" : (productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp) ? "critical" : "attention"}
                     progress={productFeed.updateCount === 0 ? "complete" : (productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp) ? "incomplete" : "partiallyComplete"}
+                    key="2-1-1-2"
                   >
                     {productFeed.updateCount === 0 ? "Standby" : (productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp) ? "Unprocessed File" : "In Progress"}
                   </Badge>
                 </InlineStack>
                 {productFeed.updateCount > 0 ?
                   <>
-                    <Text variant="bodyLg" as="p"><b>Files pending processing:</b> {productFeed.updateCount}</Text>
-                    <Text variant="bodyLg" as="p"><b>Most Recent File Upload:</b> {productFeedLatestUpdateTimestamp.toLocaleString()}</Text>
+                    <Text variant="bodyLg" as="p" key="2-1-2"><b>Files pending processing:</b> {productFeed.updateCount}</Text>
+                    <Text variant="bodyLg" as="p" key="2-1-3"><b>Most Recent File Upload:</b> {productFeedLatestUpdateTimestamp.toLocaleString()}</Text>
                     {productFeedOldestUpdateTimestamp.getTime() < oneWeekAgoTimestamp ?
-                      <Text variant="bodyLg" as="p">Oldest Unprocessed File: {productFeedOldestUpdateTimestamp.toLocaleString()}</Text>
+                      <Text variant="bodyLg" as="p" key="2-1-4"><b>Oldest Unprocessed File:</b> {productFeedOldestUpdateTimestamp.toLocaleString()}</Text>
                     : null}
                   </>
                 : null}
               </BlockStack>
             </Card>
-            <Card>
+            <Card key="2-2">
               <BlockStack gap="300">
-                <InlineStack gap="300">
-                  <Text variant="headingLg" as="h3">AI Analysis Status</Text>
+                <InlineStack gap="300" key="2-2-1">
+                  <Text variant="headingLg" as="h3" key="2-2-1-1">AI Analysis Status</Text>
                   <Badge
                     tone={aiQueue.queue.length === 0 ? "success" : "attention"}
                     progress={aiQueue.queue.length === 0 ? "complete" : "partiallyComplete"}
+                    key="2-2-1-2"
                   >
                     {aiQueue.queue.length === 0 ? "Standby" : "In Progress"}
                   </Badge>
                 </InlineStack>
                 {aiQueue.queue.length > 0 ?
                   <>
-                    <Text variant="bodyLg" as="p"><b>Products pending processing:</b> {aiQueue.queue.length}</Text>
+                    <Text variant="bodyLg" as="p" key="2-2-2"><b>Products pending processing:</b> {aiQueue.queue.length}</Text>
                     {aiQueue.updatedAt ? 
-                      <Text variant="bodyLg" as="p"><b>Most Recent Product Added to Queue:</b> {aiQueue.updatedAt.toLocaleString()}</Text>
+                      <Text variant="bodyLg" as="p" key="2-2-3"><b>Most Recent Product Added to Queue:</b> {aiQueue.updatedAt.toLocaleString()}</Text>
                     : null}
                   </>
                 : null}
               </BlockStack>
             </Card>
-            <Card>
+            <Card key="2-3">
               <BlockStack gap="300">
-                <InlineStack gap="300">
-                  <Text variant="headingLg" as="h3">Order Feed Status</Text>
-                  <Badge>Coming Soon</Badge>
+                <InlineStack gap="300" key="2-3-1">
+                  <Text variant="headingLg" as="h3" key="2-3-1-1">Order Feed Status</Text>
+                  <Badge key="2-3-1-2">Coming Soon</Badge>
                 </InlineStack>
               </BlockStack>
             </Card>
-            <Card>
+            <Card key="2-4">
               <BlockStack gap="300">
-                <InlineStack gap="300">
-                  <Text variant="headingLg" as="h3">Fufillment Feed Status</Text>
-                  <Badge>Coming Soon</Badge>
+                <InlineStack gap="300" key="2-4-1">
+                  <Text variant="headingLg" as="h3" key="2-4-1-1">Fufillment Feed Status</Text>
+                  <Badge key="2-4-1-2">Coming Soon</Badge>
                 </InlineStack>
               </BlockStack>
             </Card>
-            <Card>
+            <Card key="2-5">
               <BlockStack gap="300">
-                <InlineStack gap="300">
-                  <Text variant="headingLg" as="h3">Customer Feed Status</Text>
-                  <Badge>Coming Soon</Badge>
+                <InlineStack gap="300" key="2-5-1">
+                  <Text variant="headingLg" as="h3" key="2-5-1-1">Customer Feed Status</Text>
+                  <Badge key="2-5-1-2">Coming Soon</Badge>
                 </InlineStack>
               </BlockStack>
             </Card>

@@ -6,7 +6,6 @@ import {
   BlockStack,
   Box,
   Layout,
-  RadioButton,
   Button,
   Collapsible,
   InlineGrid,
@@ -15,15 +14,16 @@ import {
   ResourceList,
   ResourceItem,
   InlineStack,
-  FooterHelp
+  FooterHelp,
+  Checkbox
 } from "@shopify/polaris";
-import { useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon, XIcon } from '@shopify/polaris-icons';
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { authenticate } from "app/shopify.server";
 
-interface Rule {
+export interface Rule {
     title: string;
     type: boolean;
     variant: string;
@@ -33,14 +33,16 @@ interface Rule {
     assortment: string;
     customization: string;
     edit: boolean;
-    handle?: string;
+    handle: string;
+    id?: string;
 }
 
-interface Channel {
+export interface Channel {
     title: string;
     location: string;
     external: string;
     rules: Rule[];
+    handle: string;
 }
 
 export async function loader({request}: LoaderFunctionArgs) {
@@ -53,18 +55,19 @@ export async function loader({request}: LoaderFunctionArgs) {
                 metaobjectDefinitionByType(type: "sales_channels") {
                     metaobjects(first: 250) {
                         nodes {
+                            handle,
                             title: field(key: "title") {
                                 value
-                            }
+                            },
                             location: field(key: "location") {
                                 value
-                            }
+                            },
                             external: field(key: "external") {
                                 value
-                            }
+                            },
                             rules: field(key: "rules") {
                                 value
-                            }
+                            },
                         }
                     }
                 }
@@ -90,6 +93,7 @@ export async function loader({request}: LoaderFunctionArgs) {
                     `#graphql
                         query Rule($id: ID!) {
                             metaobject(id: $id) {
+                                id,
                                 handle,
                                 title: field(key: "title") {
                                     value
@@ -137,7 +141,8 @@ export async function loader({request}: LoaderFunctionArgs) {
                     assortment: ruleResult.data.metaobject.assortment.value,
                     customization: ruleResult.data.metaobject.customization.value,
                     edit: false,
-                    handle: ruleResult.data.metaobject.handle
+                    handle: ruleResult.data.metaobject.handle,
+                    id: ruleResult.data.metaobject.id
                 });
             }
         }
@@ -146,22 +151,156 @@ export async function loader({request}: LoaderFunctionArgs) {
             title: result.data.metaobjectDefinitionByType.metaobjects.nodes[i].title.value,
             location: result.data.metaobjectDefinitionByType.metaobjects.nodes[i].location.value,
             external: result.data.metaobjectDefinitionByType.metaobjects.nodes[i].external.value,
+            handle: result.data.metaobjectDefinitionByType.metaobjects.nodes[i].handle,
             rules: rules
         });
     }
 
-    return channels;
+    const brandResponse = await admin.graphql(
+        `#graphql
+            query BrandDefinitions($type: String!) {
+                metaobjectDefinitionByType(type: $type) {
+                    metaobjects(first: 250) {
+                        nodes {
+                            handle
+                            name: field(key: "name") {
+                                value
+                            }
+                            defined: field(key: "definition") {
+                                value
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        {
+            variables: {
+                type: "brand"
+            }
+        }
+    );
+    const brandResult = await brandResponse.json();
+    const brandOptions = brandResult.data.metaobjectDefinitionByType.metaobjects.nodes.filter((metaobject: any) => metaobject.defined.value === "true").map((metaobject: any) => ({
+        label: metaobject.name.value,
+        value: metaobject.handle
+    }));
+
+    const typeResponse = await admin.graphql(
+        `#graphql
+            query TypeDefinitions($type: String!) {
+                metaobjectDefinitionByType(type: $type) {
+                    metaobjects(first: 250) {
+                        nodes {
+                            handle
+                            name: field(key: "name") {
+                                value
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        {
+            variables: {
+                type: "product_type"
+            }
+        }
+    );
+    const typeResult = await typeResponse.json();
+    const typeOptions = typeResult.data.metaobjectDefinitionByType.metaobjects.nodes.map((metaobject: any) => ({
+        label: metaobject.name.value,
+        value: metaobject.handle
+    }));
+
+    const assortmentResponse = await admin.graphql(
+        `#graphql
+            query AssortmentDefinitions($type: String!) {
+                metaobjectDefinitionByType(type: $type) {
+                    metaobjects(first: 250) {
+                        nodes {
+                            handle
+                            name: field(key: "name") {
+                                value
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        {
+            variables: {
+                type: "assortment"
+            }
+        }
+    );
+    const assortmentResult = await assortmentResponse.json();
+    const assortmentOptions = assortmentResult.data.metaobjectDefinitionByType.metaobjects.nodes.map((metaobject: any) => ({
+        label: metaobject.name.value,
+        value: metaobject.handle
+    }));
+
+    const customizationResponse = await admin.graphql(
+        `#graphql
+            query CustomizationDefinition($type: MetafieldOwnerType!) {
+                metafieldDefinition(identifier: {ownerType: $type, namespace: "custom", key: "customizable"}) {
+                    validations {
+                        name
+                        value
+                    }
+                }
+            }
+        `,
+        {
+            variables: {
+                type: "PRODUCT"
+            }
+        }
+    );
+    const customizationResult = await customizationResponse.json();
+    const customizationOptions = JSON.parse(customizationResult.data.metafieldDefinition.validations.filter((validation: any) => validation.name === "choices")[0].value).map((item: string) => ({
+        label: item,
+        value: item
+    }));
+
+    const occasionResponse = await admin.graphql(
+        `#graphql
+            query OccasionDefinition($type: String!) {
+                metaobjectDefinitionByType(type: $type) {
+                    fieldDefinitions {
+                        key
+                        validations {
+                            name
+                            value
+                        }
+                    }
+                }
+            }
+        `,
+        {
+            variables: {
+                type: "occasion"
+            }
+        }
+    );
+    const occasionResult = await occasionResponse.json();
+    const occasionOptions = JSON.parse(occasionResult.data.metaobjectDefinitionByType.fieldDefinitions.filter((field: any) => field.key === "name")[0].validations.filter((validation: any) => validation.name === "choices")[0].value).map((item: string) => ({
+        label: item,
+        value: item
+    }));
+
+    return { channels, brandOptions, typeOptions, assortmentOptions, customizationOptions, occasionOptions };
 }
 
 export default function Index() {
   const [currentChannel, setCurrentChannel] = useState(0);
   const [isChanged, setIsChanged] = useState(false);
 
-  const loaderData = useLoaderData<typeof loader>();
-  const [data, setData] = useState(loaderData);
+  const {channels, brandOptions, typeOptions, assortmentOptions, customizationOptions, occasionOptions } = useLoaderData<typeof loader>();
+  const [data, setData] = useState(channels);
 
   useEffect(() => {
-    const hasChanged = !deepCompare(data, loaderData);
+    const hasChanged = !deepCompare(data, channels);
     setIsChanged(hasChanged);
   }, [data])
 
@@ -178,6 +317,7 @@ export default function Index() {
         assortment: "ALL",
         customization: "ALL",
         edit: true,
+        handle: `${channelToUpdate}-${new Date().getTime()}`
     }; 
     channelToUpdate.rules = [...channelToUpdate.rules, newRule];
     newChannels[currentChannel] = channelToUpdate;
@@ -246,9 +386,9 @@ export default function Index() {
             break;
         case "TYPE":
             if (value) {
-                if (value === "inclusive") {
+                if (value === "true") {
                     ruleToUpdate.type = true;
-                } else if (value === "exclusive") {
+                } else {
                     ruleToUpdate.type = false;
                 }
             }
@@ -265,6 +405,60 @@ export default function Index() {
     setData(newChannels);
   };
 
+  const actionFetcher = useFetcher();
+  useEffect(() => {
+    if (actionFetcher.data !== undefined) {
+        window.location.reload();
+    }
+  }, [actionFetcher.data]);
+
+  const handleSave = () => {
+    for (const channel of channels) {
+        const newChangedRule: Rule[] = [];
+        const currentChannel = data.filter((newChannel: Channel) => channel.handle === newChannel.handle)[0];
+        const originalMap = new Map();
+        for (const rule of channel.rules) {
+            originalMap.set(rule.handle, rule);
+        }
+        for (let i = 0; i < currentChannel.rules.length; i++) {
+            const newRule = currentChannel.rules[i] as Rule;
+            const originalRule = originalMap.get(newRule.handle);
+            let ruleChanged = false;
+            originalMap.delete(newRule.handle);
+            if (!originalRule) {
+                newChangedRule.push(newRule);
+                continue;
+            }
+            if (i !== channel.rules.findIndex(r => r.handle === newRule.handle)) {
+                ruleChanged = true;
+            } else {
+                for (const key in newRule) {
+                    if (newRule[key as keyof Rule] !== originalRule[key]) {
+                        ruleChanged = true;
+                        break;
+                    }
+                }
+            }
+            if (ruleChanged) {
+                newChangedRule.push(newRule);
+            }
+        }
+        const deleteRules: string[] = [];
+        for (const rule of channel.rules) {
+            if (rule.id) {
+                deleteRules.push(rule.id);
+            }
+        }
+        const orderList: string[] = currentChannel.rules.map((rule: Rule) => rule.id ? rule.id : rule.handle);
+        const form = new FormData();
+        form.append("delete", JSON.stringify(deleteRules));
+        form.append("newChange", JSON.stringify(newChangedRule));
+        form.append("order", JSON.stringify(orderList));
+        form.append("channel", JSON.stringify(channel));
+        actionFetcher.submit(form, { method: 'POST', action: `/api/shopify/channel/update`});
+    }
+  };
+
   return (
     <Page 
       fullWidth
@@ -275,12 +469,12 @@ export default function Index() {
       }}
       primaryAction={{
         content: "Save",
-        url: "/app", //TODO
+        onAction: handleSave,
         disabled: !isChanged
       }}
       secondaryActions={[{
         content: "Cancel",
-        onAction: () => setData(loaderData),
+        onAction: () => setData(channels),
         disabled: !isChanged
       }]}
     >
@@ -348,19 +542,10 @@ export default function Index() {
                                 >
                                     <BlockStack gap="300">
                                         <InlineStack gap="500">
-                                            <RadioButton 
-                                                label="Inclusive Rule"
-                                                checked={rule.type}
-                                                name={`type-${currentChannel}-${index}`}
-                                                id="inclusive"
-                                                onChange={(_: boolean, newValue: string) => handleFieldChange(index, "TYPE", newValue)}
-                                            />
-                                            <RadioButton 
+                                            <Checkbox 
                                                 label="Exclusive Rule"
                                                 checked={!rule.type}
-                                                name={`type-${currentChannel}-${index}`}
-                                                id="exclusive"
-                                                onChange={(_: boolean, newValue: string) => handleFieldChange(index, "TYPE", newValue)}
+                                                onChange={(newValue: boolean) => handleFieldChange(index, "TYPE", (!newValue).toString())}
                                             />
                                         </InlineStack>
                                         <InlineGrid gap="200" columns={3}>
@@ -376,48 +561,31 @@ export default function Index() {
                                             />
                                             <Select
                                                 label="Brand"
-                                                options={[
-                                                    {label: rule.type ? "All" : "", value: "ALL"},
-                                                    {label: "Leanin' Tree", value: "LT"},
-                                                    {label: "Willow & Ivy", value: "WI"},
-                                                    {label: "Ranch Rebel", value: "RR"}
-                                                ]}
+                                                options={[{label: rule.type ? "All" : "", value: "ALL"}, ...brandOptions]}
                                                 value={rule.brand}
                                                 onChange={(newValue: string) => handleFieldChange(index, "BRAND", newValue)}                         
                                             />
                                             <Select
                                                 label="Product Type"
-                                                options={[
-                                                    {label: rule.type ? "All" : "", value: "ALL"},
-                                                    {label: "Greeting Card", value: "Greeting Card"}
-                                                ]}
+                                                options={[{label: rule.type ? "All" : "", value: "ALL"}, ...typeOptions]}
                                                 value={rule.product}
                                                 onChange={(newValue: string) => handleFieldChange(index, "PRODUCT", newValue)}            
                                             />
                                             <Select
                                                 label="Occasion"
-                                                options={[
-                                                    {label: rule.type ? "All" : "", value: "ALL"},
-                                                    {label: "Birthday", value: "Birthday"}
-                                                ]}
+                                                options={[{label: rule.type ? "All" : "", value: "ALL"}, ...occasionOptions]}
                                                 value={rule.occasion}         
                                                 onChange={(newValue: string) => handleFieldChange(index, "OCCASION", newValue)}                    
                                             />
                                             <Select
                                                 label="Assortment"
-                                                options={[
-                                                    {label: rule.type ? "All" : "", value: "ALL"},
-                                                    {label: "None", value: "NONE"}
-                                                ]}
+                                                options={[{label: rule.type ? "All" : "", value: "ALL"}, ...assortmentOptions]}
                                                 value={rule.assortment}
                                                 onChange={(newValue: string) => handleFieldChange(index, "ASSORTMENT", newValue)}                       
                                             />
                                             <Select
                                                 label="Customization"
-                                                options={[
-                                                    {label: rule.type ? "All" : "", value: "ALL"},
-                                                    {label: "PrePrinted", value: "PREPRINTED"}
-                                                ]}
+                                                options={[{label: rule.type ? "All" : "", value: "ALL"}, ...customizationOptions]}
                                                 value={rule.customization}
                                                 onChange={(newValue: string) => handleFieldChange(index, "CUSTOMIZATION", newValue)}    
                                             />
