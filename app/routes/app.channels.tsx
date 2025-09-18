@@ -317,7 +317,7 @@ export default function Index() {
         assortment: "ALL",
         customization: "ALL",
         edit: true,
-        handle: `${channelToUpdate}-${new Date().getTime()}`
+        handle: `${channelToUpdate.handle}-${new Date().getTime()}`
     }; 
     channelToUpdate.rules = [...channelToUpdate.rules, newRule];
     newChannels[currentChannel] = channelToUpdate;
