@@ -1,663 +1,870 @@
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Page,
-  Text,
   BlockStack,
-  Box,
-  Layout,
   Tabs,
   Card,
+  Box,
+  Text,
+  Spinner,
+  LegacyStack,
   ResourceList,
   ResourceItem,
-  Filters,
-  FooterHelp,
-  TextField,
-  InlineGrid,
-  Button,
-  ButtonGroup,
+  Layout,
   InlineStack,
-  Select,
-  ChoiceList,
-  DropZone,
-  Thumbnail,
   Badge,
-  SkeletonBodyText
-} from "@shopify/polaris";
-import { useFetcher } from "@remix-run/react";
-import { useState, useEffect, useCallback } from "react";
+  FooterHelp,
+  Filters,
+  Pagination,
+  Button,
+  InlineGrid,
+  TextField,
+  ButtonGroup,
+  Select,
+  ChoiceList
+} from '@shopify/polaris';
 import { DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@shopify/polaris-icons';
-import { TabReply, DefinitionPreview } from "./api.shopify.$definitionType.get";
-import { DefinitionReply } from "./api.shopify.metaobject.get.$id";
-import { ActionResponse } from "./api.shopify.metaobject.create.$type";
 
-export default function Index() {
-    const [selectedTab, setSelectedTab] = useState(0);
-    const [selectedDefinition, setSelectedDefinition] = useState<string | null>(null);
+// These types are just for local development and may not exist in a real environment
+type DefinitionPreview = {
+  id: string;
+  name: string;
+  defined: boolean;
+};
 
-    const [currentTab, setCurrentTab] = useState<TabReply | null>(null);
-    const [currentDefinition, setCurrentDefinition] = useState<DefinitionReply | null>(null);
-    const [originalDefinition, setOriginalDefinition] = useState<DefinitionReply| null>(null);
-    const [currentValidations, setCurrentValidations] = useState<string[]>([]);
-    const [originalValidations, setOriginalValidations] = useState<string[]>([]);
+type TabReply = {
+  validations: string[] | null;
+  definitions: DefinitionPreview[];
+};
 
-    const tabFetcher = useFetcher();
-    const defintionFetcher = useFetcher();
-    const actionFetcher = useFetcher();
+type Field = {
+  key: string;
+  value: any;
+  type: string;
+  name: string;
+  options?: { label: string, value: string }[];
+}
 
-    const [queryValue, setQueryValue] = useState("");
+type DefinitionReply = {
+  type: string;
+  name: string;
+  fields: Field[];
+  isUsed: boolean;
+};
 
-    const [isCurrentDefinitionChanged, setCurrentDefinitionChanged] = useState(false);
+export default function App() {
+  const [selected, setSelected] = useState(0);
+  const [definitions, setDefinitions] = useState<DefinitionPreview[] | null>(null);
+  const [validations, setValidations] = useState<string[] | null>(null);
+  const [editedValidations, setEditedValidations] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedDefinition, setSelectedDefinition] = useState<string | null>(null);
+  const [selectedDefinitionData, setSelectedDefinitionData] = useState<DefinitionReply | null>(null);
+  const [editedDefinitionData, setEditedDefinitionData] = useState<DefinitionReply | null>(null);
+  const [loadingDefinition, setLoadingDefinition] = useState(false);
+  const [definitionError, setDefinitionError] = useState<string | null>(null);
+  const [queryValue, setQueryValue] = useState('');
+  const [status, setStatus] = useState<string[] | undefined>(['ALL']);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isAdding, setIsAdding] = useState(false);
+  const itemsPerPage = 50;
 
-    useEffect(() => {
-        setCurrentDefinitionChanged(areValidationsDifferent(currentValidations, originalValidations));
-    }, [currentValidations]);
+  const tabs = [
+    {
+      id: "artist",
+      content: "Artist",
+      accessibilityLabel: "Artist",
+      panelID: "artist-content",
+    },
+    {
+      id: "assortment",
+      content: "Assortment",
+      accessibilityLabel: "Assortment",
+      panelID: "assortment-content",
+    },
+    {
+      id: "brand",
+      content: "Brand",
+      accessibilityLabel: "Brand",
+      panelID: "brand-content",
+    },
+    {
+      id: "category",
+      content: "Category",
+      accessibilityLabel: "Category",
+      panelID: "category-content",
+    },
+    {
+      id: "occasionName",
+      content: "Occasion",
+      accessibilityLabel: "Occasion",
+      panelID: "occasion-content",
+    },
+    {
+      id: "occasion",
+      content: "Occasion Prefix",
+      accessibilityLabel: "Occasion Prefix",
+      panelID: "occasion-prefix-content",
+    },
+    {
+      id: "processes",
+      content: "Process",
+      accessibilityLabel: "Process",
+      panelID: "process-content",
+    },
+    {
+      id: "recipient",
+      content: "Recipient Group",
+      accessibilityLabel: "Recipient Group",
+      panelID: "recipient-group-content",
+    },
+    {
+      id: "size",
+      content: "Size",
+      accessibilityLabel: "Size",
+      panelID: "size-content",
+    },
+    {
+      id: "tone",
+      content: "Tone",
+      accessibilityLabel: "Tone",
+      panelID: "tone-content",
+    }
+  ];
 
-    useEffect(() => {
-        console.log("==================================================");
-        console.log("==================================================");
-        console.log(currentDefinition);
-        console.log(originalDefinition);
-        console.log("--------------------------------------------------");
-        setCurrentDefinitionChanged(!areDefinitionsDifferent(currentDefinition, originalDefinition));
-        console.log("==================================================");
-        console.log("==================================================");
-    }, [currentDefinition])
+  const handleTabChange = useCallback(
+    (selectedTabIndex: number) => {
+      setSelected(selectedTabIndex);
+      setQueryValue('');
+      setStatus(['ALL']);
+      setCurrentPage(1);
+    },
+    [],
+  );
 
-    const tabs = [
-        {
-            id: "artist",
-            content: "Artist",
-            accessibilityLabel: "Artist",
-        },
-        {
-            id: "assortment",
-            content: "Assortment",
-            accessibilityLabel: "Assortment",
-        },
-        {
-            id: "brand",
-            content: "Brand",
-            accessibilityLabel: "Brand",
-        },
-        {
-            id: "category",
-            content: "Category",
-            accessibilityLabel: "Category",
-        },
-        {
-            id: "occasionName",
-            content: "Occasion",
-            accessibilityLabel: "Occasion",
-        },
-        {
-            id: "occasion",
-            content: "Occasion Prefix",
-            accessibilityLabel: "Occasion Prefix",
-        },
-        {
-            id: "processes",
-            content: "Process",
-            accessibilityLabel: "Process",
-        },
-        {
-            id: "recipient",
-            content: "Recipient Group",
-            accessibilityLabel: "Recipient Group"
-        },
-        {
-            id: "size",
-            content: "Size",
-            accessibilityLabel: "Size",
-        },
-        {
-            id: "tone",
-            content: "Tone",
-            accessibilityLabel: "Tone",
+  const handleQueryChange = useCallback(
+    (value: string) => {
+      setQueryValue(value);
+      setCurrentPage(1);
+    },
+    [],
+  );
+
+  const handleQueryClear = useCallback(() => setQueryValue(''), []);
+  const handleStatusChange = useCallback(
+    (value: string[]) => {
+      setStatus(value);
+      setCurrentPage(1);
+    },
+    [],
+  );
+  
+  const handleAdd = useCallback(async () => {
+    setIsAdding(true);
+    setError(null);
+    const tabId = tabs[selected].id;
+    const url = `/api/shopify/metaobject/create/${tabId}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.success && data.id) {
+        setSelectedDefinition(data.id);
+        const fetchResponse = await fetch(`/api/shopify/${tabId}/get`);
+        if (!fetchResponse.ok) {
+           throw new Error(`HTTP error! status: ${fetchResponse.status}`);
         }
-    ];
+        const fetchData: TabReply = await fetchResponse.json();
+        setDefinitions(fetchData.definitions);
+        setValidations(fetchData.validations);
+      } else {
+        throw new Error(data.message || 'Failed to create new definition.');
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsAdding(false);
+    }
+  }, [selected, tabs]);
 
-    useEffect(() => {
-        const tabId = tabs[selectedTab].id;
-        tabFetcher.load(`/api/shopify/${tabId}/get${queryValue ? `?search=${queryValue}` : ""}`);
+  const handleDeleteDefinition = useCallback(async () => {
+    if (!selectedDefinition) {
+      return;
+    }
+    setLoadingDefinition(true);
+    setDefinitionError(null);
+    const id = selectedDefinition.replace("gid://shopify/Metaobject/", "");
+    const url = `/api/shopify/metaobject/delete/${id}`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: { success: boolean, message: string } = await response.json();
+      if (data.success) {
         setSelectedDefinition(null);
-        setCurrentDefinition(null);
-        console.log("SET3")
-        setOriginalDefinition(null);
-        setCurrentValidations([]);
-        setOriginalValidations([])
-    }, [selectedTab, queryValue]);
+        const tabId = tabs[selected].id;
+        const fetchResponse = await fetch(`/api/shopify/${tabId}/get`);
+        if (!fetchResponse.ok) {
+           throw new Error(`HTTP error! status: ${fetchResponse.status}`);
+        }
+        const fetchData: TabReply = await fetchResponse.json();
+        setDefinitions(fetchData.definitions);
+        setValidations(fetchData.validations);
+        setEditedValidations(fetchData.validations);
+      } else {
+        setDefinitionError(data.message || 'Failed to delete definition.');
+      }
+    } catch (e: any) {
+      setDefinitionError(e.message);
+    } finally {
+      setLoadingDefinition(false);
+    }
+  }, [selectedDefinition, selected, tabs]);
 
-    useEffect(() => {
-        const data = tabFetcher.data as TabReply;
-        if (data !== undefined) {
-            if (data.validations !== null) {   
-                setCurrentValidations([...data.validations]);
-                setOriginalValidations([...data.validations]);
-                setCurrentTab(null);
+  useEffect(() => {
+    const fetchDefinitions = async () => {
+      setLoading(true);
+      setError(null);
+      setDefinitions(null);
+      setValidations(null);
+      setEditedValidations(null);
+      setSelectedDefinition(null);
+      
+      const tabId = tabs[selected].id;
+      const url = `/api/shopify/${tabId}/get`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: TabReply = await response.json();
+        setDefinitions(data.definitions);
+        setValidations(data.validations);
+        setEditedValidations(data.validations);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDefinitions();
+  }, [selected]);
+  
+  useEffect(() => {
+    const fetchDefinitionDetails = async () => {
+      if (!selectedDefinition) {
+        setSelectedDefinitionData(null);
+        setEditedDefinitionData(null);
+        return;
+      }
+      setLoadingDefinition(true);
+      setDefinitionError(null);
+      
+      const id = selectedDefinition.replace("gid://shopify/Metaobject/", "");
+      const url = `/api/shopify/metaobject/get/${id}`;
+      
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: DefinitionReply = await response.json();
+        const updatedData = {
+          ...data,
+          fields: data.fields.map(field => {
+            if (field.type.startsWith('list.')) {
+              return { ...field, value: field.value ? JSON.parse(field.value) : [] };
+            } else if (field.type === 'money') {
+              return { ...field, value: field.value ? JSON.parse(field.value) : { amount: '', currency_code: 'USD' } };
+            } else if (field.type === 'boolean') {
+              return { ...field, value: field.value === 'true' };
             } else {
-                setCurrentTab(data);
+              return field;
             }
-        }
-    }, [tabFetcher.data]);
+          })
+        };
 
-    useEffect(() => {
-        if (selectedDefinition) {
-            defintionFetcher.load(`/api/shopify/metaobject/get/${selectedDefinition.replace("gid://shopify/Metaobject/", "")}`);
-        }
-    }, [selectedDefinition]);
-
-    useEffect(() => {
-        const data = defintionFetcher.data as DefinitionReply;
-        setCurrentDefinition(data);
-        console.log("SET2")
-        setOriginalDefinition(data);
-    }, [defintionFetcher.data]);
-
-    const handleTabChange = useCallback((selectedTabIndex: number) => {
-        setSelectedTab(selectedTabIndex);
-    }, []);
-
-    const handleDefinitionSelect = useCallback((item: DefinitionPreview) => {
-        setSelectedDefinition(item.id);
-    }, []);
-
-    const handleCancel = () => {
-        if (currentDefinition === null || currentDefinition === undefined) {
-            setCurrentValidations(originalValidations);
+        setSelectedDefinitionData(updatedData);
+        setEditedDefinitionData(updatedData);
+        const validationsField = data.fields.find(field => field.key === 'validations');
+        if (validationsField && validationsField.value) {
+          const parsedValidations = JSON.parse(validationsField.value);
+          setValidations(parsedValidations);
+          setEditedValidations(parsedValidations);
         } else {
-            setCurrentDefinition(originalDefinition);
+          setValidations([]);
+          setEditedValidations([]);
         }
+      } catch (e: any) {
+        setDefinitionError(e.message);
+      } finally {
+        setLoadingDefinition(false);
+      }
     };
 
-    const handleDelete = (id: string | null) => {
-        if (id !== null) {
-            actionFetcher.load(`/api/shopify/metaobject/delete/${id.replace("gid://shopify/Metaobject/", "")}`);
-        }
-    };
+    fetchDefinitionDetails();
+  }, [selectedDefinition]);
 
-    useEffect(() => {
-        const data = actionFetcher.data as ActionResponse;
-        if (data !== undefined && data.id !== undefined) {
-            setSelectedDefinition(data.id);
-        } else {
-            setSelectedDefinition(null);
-        }
-        console.log("SET1")
-        setCurrentDefinition(null);
-        setOriginalDefinition(null);
-        setCurrentValidations([]);
-        setOriginalValidations([]);
-    }, [actionFetcher.data]);
 
-    const handleSave = (id: string, field: string) => {
-        if (field === "recipient" || field === "tone" || field === "occasionName") {
-            if (currentValidations) {
-                const form = new FormData();
-                form.append("validations", JSON.stringify(currentValidations));
-                actionFetcher.submit(form, { method: 'POST', action: `/api/shopify/${id}/update`});
+  const backAction = {
+    content: 'SAP Sync',
+    url: '/app'
+  };
+  
+  const handleFieldChange = useCallback(
+    (key: string, newValue: any, type: string) => {
+      if (editedDefinitionData) {
+        const updatedFields = editedDefinitionData.fields.map(field => {
+          if (field.key === key) {
+            let valueToUpdate = newValue;
+            if (type === 'money') {
+              valueToUpdate = { amount: newValue, currency_code: 'USD' };
+            } else if (type.startsWith('list.')) {
+              return { ...field, value: newValue };
+            } else if (type === 'boolean') {
+              valueToUpdate = String(newValue);
             }
-        } else {
-            if (currentDefinition) {
-                const form = new FormData();
-                form.append("fields", JSON.stringify(currentDefinition.fields));
-                actionFetcher.submit(form, { method: 'POST', action: `/api/shopify/metaobject/upsert/${selectedDefinition?.replace("gid://shopify/Metaobject/", "")}`});
-            }
-        }
-    };
+            return { ...field, value: valueToUpdate };
+          }
+          return field;
+        });
+        setEditedDefinitionData({ ...editedDefinitionData, fields: updatedFields });
+      }
+    },
+    [editedDefinitionData],
+  );
+  
+  const handleSave = useCallback(async () => {
+    const tabId = tabs[selected].id;
+    if (tabId === 'recipient' || tabId === 'tone' || tabId === 'occasionName') {
+      const formData = new FormData();
+      formData.append('validations', JSON.stringify(editedValidations));
+      
+      const url = `/api/shopify/${tabId}/update`;
 
-    const handleRemove = (index: number, field: string) => {
-        if (field === "definition") {
-            const newValidations = currentValidations.filter((_, i) => i !== index);
-            setCurrentValidations(newValidations);
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          console.log("Save successful!");
+          setValidations(editedValidations);
         } else {
-            if (currentDefinition) {
-                const newFields = currentDefinition?.fields.map((item) => {
-                    if (item.key === field) {
-                        const tempValidations: string[] = JSON.parse(item.value);
-                        const newValidations = tempValidations.filter((_, i) => i !== index);
-                        item.value = JSON.stringify(newValidations);
-                    }
-                    return item;
-                });
-                const newDefinition = {
-                    type: currentDefinition.type,
-                    name: currentDefinition.name,
-                    fields:newFields,
-                    isUsed: currentDefinition.isUsed
-                };
-                setCurrentDefinition(newDefinition);
-            }
+          console.error("Save failed:", data.message);
         }
-    };
+      } catch (e) {
+        console.error("An error occurred during save:", e);
+      }
+    } else {
+      if (selectedDefinition && editedDefinitionData) {
+        const id = selectedDefinition.replace("gid://shopify/Metaobject/", "");
+        const url = `/api/shopify/metaobject/upsert/${id}`;
+        
+        const fieldsToSave = editedDefinitionData.fields.map(field => {
+          if (field.type.startsWith('list.') || field.type === 'money') {
+            return { ...field, value: JSON.stringify(field.value) };
+          }
+          return field;
+        });
+        
+        const formData = new FormData();
+        formData.append('fields', JSON.stringify(fieldsToSave));
 
-    const addValidation = (field: string) => {
-        if (field === "definition") {
-            const newValidations = [...currentValidations, ""];
-            setCurrentValidations(newValidations);
-        } else {
-            if (currentDefinition) {
-                const newFields = currentDefinition.fields.map((item) => {
-                    if (item.key === field) {
-                        const newValidations: string[] = [...JSON.parse(item.value), ""];
-                        item.value = JSON.stringify(newValidations);
-                    }
-                    return item;
-                });
-                const newDefinition = {
-                    type: currentDefinition.type,
-                    name: currentDefinition.name,
-                    fields:newFields,
-                    isUsed: currentDefinition.isUsed
-                };
-                setCurrentDefinition(newDefinition);
-            }
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await response.json();
+          if (data.status === "success") {
+            console.log("Save successful!");
+            setSelectedDefinitionData(editedDefinitionData);
+          } else {
+            console.error("Save failed:", data.message);
+          }
+        } catch (e) {
+          console.error("An error occurred during save:", e);
         }
-    };
+      }
+    }
+  }, [selected, editedValidations, editedDefinitionData, selectedDefinition, tabs]);
 
-    const handleValidationChange = (index: number, newValue: string, field: string) => {
-        if (field === "definition") {
-            const newValidations = currentValidations.map((validation, i) => {
-                if (i === index) {
-                    return newValue;
-                }
-                return validation;
-            });
-            setCurrentValidations(newValidations);
-        } else {
-            if (currentDefinition) {
-                const newFields = currentDefinition.fields.map((item) => {
-                    if (item.key === field) {
-                        const tempValidations: string[] = JSON.parse(item.value);
-                        const newValidations = tempValidations.map((validation, i) => {
-                            if (i === index) {
-                                return newValue;
-                            } else {
-                                return validation;
-                            }
-                        });
-                        item.value = JSON.stringify(newValidations);
-                    }
-                    return item;
-                });
-                const newDefinition = {
-                    type: currentDefinition.type,
-                    name: currentDefinition.name,
-                    fields:newFields,
-                    isUsed: currentDefinition.isUsed
-                };
-                setCurrentDefinition(newDefinition);
-            }
-        }
+  const handleValidationChange = useCallback(
+    (newValue: string, index: number) => {
+      if (editedValidations) {
+        const newValidations = [...editedValidations];
+        newValidations[index] = newValue;
+        setEditedValidations(newValidations);
+      }
+    },
+    [editedValidations],
+  );
+  
+  const handleDeleteListItem = useCallback(
+    (fieldKey: string, index: number) => {
+      if (editedDefinitionData) {
+        const updatedFields = editedDefinitionData.fields.map(field => {
+          if (field.key === fieldKey && Array.isArray(field.value)) {
+            const newList = field.value.filter((_, i) => i !== index);
+            return { ...field, value: newList };
+          }
+          return field;
+        });
+        setEditedDefinitionData({ ...editedDefinitionData, fields: updatedFields });
+      }
+    },
+    [editedDefinitionData],
+  );
+
+  const handleMoveUpListItem = useCallback(
+    (fieldKey: string, index: number) => {
+      if (editedDefinitionData && index > 0) {
+        const updatedFields = editedDefinitionData.fields.map(field => {
+          if (field.key === fieldKey && Array.isArray(field.value)) {
+            const newList = [...field.value];
+            [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
+            return { ...field, value: newList };
+          }
+          return field;
+        });
+        setEditedDefinitionData({ ...editedDefinitionData, fields: updatedFields });
+      }
+    },
+    [editedDefinitionData],
+  );
+  
+  const handleMoveDownListItem = useCallback(
+    (fieldKey: string, index: number, listValueLength: number) => {
+      if (editedDefinitionData && index < listValueLength - 1) {
+        const updatedFields = editedDefinitionData.fields.map(field => {
+          if (field.key === fieldKey && Array.isArray(field.value)) {
+            const newList = [...field.value];
+            [newList[index + 1], newList[index]] = [newList[index], newList[index + 1]];
+            return { ...field, value: newList };
+          }
+          return field;
+        });
+        setEditedDefinitionData({ ...editedDefinitionData, fields: updatedFields });
+      }
+    },
+    [editedDefinitionData],
+  );
+
+  const handleDeleteValidation = useCallback(
+    (index: number) => {
+      if (editedValidations && editedValidations.length > 1) {
+        const newValidations = editedValidations.filter((_, i) => i !== index);
+        setEditedValidations(newValidations);
+      }
+    },
+    [editedValidations],
+  );
+
+  const handleMoveUpValidation = useCallback(
+    (index: number) => {
+      if (editedValidations && index > 0) {
+        const newValidations = [...editedValidations];
+        [newValidations[index - 1], newValidations[index]] = [newValidations[index], newValidations[index - 1]];
+        setEditedValidations(newValidations);
+      }
+    },
+    [editedValidations],
+  );
+
+  const handleMoveDownValidation = useCallback(
+    (index: number) => {
+      if (editedValidations && index < editedValidations.length - 1) {
+        const newValidations = [...editedValidations];
+        [newValidations[index + 1], newValidations[index]] = [newValidations[index], newValidations[index + 1]];
+        setEditedValidations(newValidations);
+      }
+    },
+    [editedValidations],
+  );
+  
+  const handleAddNewValidation = useCallback(() => {
+    if (editedValidations) {
+      setEditedValidations([...editedValidations, '']);
+    }
+  }, [editedValidations]);
+
+  const areValidationsUnchanged = useMemo(() => {
+    return JSON.stringify(editedValidations) === JSON.stringify(validations);
+  }, [editedValidations, validations]);
+  
+  const areFieldsUnchanged = useMemo(() => {
+    return JSON.stringify(editedDefinitionData?.fields) === JSON.stringify(selectedDefinitionData?.fields);
+  }, [editedDefinitionData, selectedDefinitionData]);
+
+  const handleCancel = useCallback(() => {
+    setEditedValidations(validations);
+    setEditedDefinitionData(selectedDefinitionData);
+  }, [validations, selectedDefinitionData]);
+
+
+  const allFilteredDefinitions = useMemo(() => {
+    if (!definitions) {
+      return [];
+    }
+    return definitions.filter(definition => {
+      const nameMatch = definition.name.toLowerCase().includes(queryValue.toLowerCase());
+      const statusMatch = status?.[0] === 'ALL' || (status?.[0] === 'DEFINED' ? definition.defined : !definition.defined);
+      return nameMatch && statusMatch;
+    });
+  }, [definitions, queryValue, status]);
+
+  const paginatedDefinitions = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return allFilteredDefinitions.slice(startIndex, endIndex);
+  }, [allFilteredDefinitions, currentPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(allFilteredDefinitions.length / itemsPerPage);
+  }, [allFilteredDefinitions, itemsPerPage]);
+  
+  const filters = useMemo(() => [
+    {
+      key: 'status',
+      label: 'Status',
+      filter: (
+        <ChoiceList
+          title="Status"
+          titleHidden
+          choices={[
+            {label: 'ALL', value: 'ALL'},
+            {label: 'DEFINED', value: 'DEFINED'},
+            {label: 'UNDEFINED', value: 'UNDEFINED'},
+          ]}
+          selected={status || ['ALL']}
+          onChange={handleStatusChange}
+        />
+      ),
+      shortcut: true,
+    },
+  ], [status, handleStatusChange]);
+
+  const appliedFilters = useMemo(() => {
+    const filters = [];
+    if (status && status[0] !== 'ALL') {
+      filters.push({
+        key: 'status',
+        label: `Status: ${status[0]}`,
+        onRemove: () => setStatus(['ALL']),
+      });
+    }
+    return filters;
+  }, [status]);
+
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <LegacyStack distribution="center">
+          <Spinner accessibilityLabel="Loading definitions" size="large" />
+        </LegacyStack>
+      );
     }
 
-    const handleMove = (index: number, direction: "UP" | "DOWN", field: string) => {
-        if (field === "definition") {
-            const newValidations = [...currentValidations];
-            if (direction === "UP" && index > 0) {
-                [newValidations[index], newValidations[index - 1]] = [newValidations[index - 1], newValidations[index]]
-            } else if (direction === "DOWN" && index < currentValidations.length - 1) {
-                [newValidations[index], newValidations[index + 1]] = [newValidations[index + 1], newValidations[index]]
-            }
-            setCurrentValidations(newValidations);
-        } else {
-            if (currentDefinition) {
-                const newFields = currentDefinition.fields.map((item) => {
-                    if (item.key === field) {
-                        const newValidations: string[] = JSON.parse(item.value);
-                        if (direction === "UP" && index > 0) {
-                            [newValidations[index], newValidations[index - 1]] = [newValidations[index - 1], newValidations[index]]
-                        } else if (direction === "DOWN" && index < currentValidations.length - 1) {
-                            [newValidations[index], newValidations[index + 1]] = [newValidations[index + 1], newValidations[index]]
-                        }
-                        item.value = JSON.stringify(newValidations);
-                    }
-                    return item;
-                });
-                const newDefinition = {
-                    type: currentDefinition.type,
-                    name: currentDefinition.name,
-                    fields:newFields,
-                    isUsed: currentDefinition.isUsed
-                };
-                setCurrentDefinition(newDefinition);
-            }
-        }
-    };
-
-    const handleFieldChange = (field: string, newValue: string | string[] | File) => {
-        if (currentDefinition) {
-            const newFields = currentDefinition.fields.map((item) => {
-                if (field === item.key) {
-                    if (newValue instanceof File) {
-                        item.value = window.URL.createObjectURL(newValue);
-                        //TODO may need more to save it
-                    } else {
-                        if (Array.isArray(newValue)) {
-                            item.value = JSON.stringify(newValue);
-                        } else {
-                            item.value = newValue;
-                        }
-                    }
-                }
-                return item;
-            });
-            const newDefinition = {
-                type: currentDefinition.type,
-                name: currentDefinition.name,
-                fields:newFields,
-                isUsed: currentDefinition.isUsed
-            };
-            console.log("PING")
-            setCurrentDefinition(newDefinition);
-        }
+    if (error) {
+      return <Text as="p" variant="headingSm" tone="critical">Error: {error}</Text>;
     }
-
-    const handleAddNewDefinition = () => {
-        actionFetcher.load(`/api/shopify/metaobject/create/${tabs[selectedTab].id}`);
-    };
+    
+    const hasDefinitions = paginatedDefinitions && paginatedDefinitions.length > 0;
+    const hasValidationsWithoutDefinitions = validations && validations.length > 0 && !hasDefinitions;
 
     return (
-        <Page 
-            fullWidth
-            title="Product Definitions"
-            backAction={{
-                content: "SAP Sync",
-                url: "/app"
-            }}
-        >
-            <BlockStack gap="500">
-                <Tabs tabs={tabs} selected={selectedTab} onSelect={handleTabChange} />
-                <Layout>
-                    <Layout.Section variant="oneThird">
-                        {tabFetcher.state === "loading" || tabFetcher.state === "submitting" ?
-                            <Card>
-                                <BlockStack gap="200">
-                                    <Text variant="headingMd" as="h2">Loading...</Text>
-                                    <SkeletonBodyText lines={5} />
-                                </BlockStack>
-                            </Card>
-                        : currentTab !== null && currentTab.definitions !== null ?
-                            <Card padding="0">
-                                <BlockStack gap="300">
-                                    <ResourceList 
-                                        items={currentTab !== null ? currentTab.definitions : []}
-                                        filterControl={
-                                            <InlineGrid gap="100" columns={['twoThirds', 'oneThird']} alignItems="center">
-                                                <Filters 
-                                                    filters={[]}
-                                                    appliedFilters={[]}
-                                                    onQueryChange={(newValue: string) => setQueryValue(newValue)}
-                                                    onQueryClear={() => setQueryValue("")}
-                                                    onClearAll={() => setQueryValue("")}
-                                                    hideFilters
-                                                    queryValue={queryValue}
-                                                />
-                                                <Button variant={"primary"} onClick={() => handleAddNewDefinition()}>Add New</Button>
-                                            </InlineGrid>
-                                        }
-                                        renderItem={(item: DefinitionPreview) => {
-                                            const {id, name, defined} = item;
-                                            return (
-                                                <ResourceItem
-                                                    id={id}
-                                                    onClick={() => handleDefinitionSelect(item)}
-                                                    key={id}
-                                                    disabled={selectedDefinition === id}
-                                                    accessibilityLabel={`View details for ${name}`}
-                                                >
-                                                    <InlineStack gap="300">
-                                                        <Text variant="bodyMd" fontWeight={id === selectedDefinition ? "regular" : "bold"} tone={id === selectedDefinition ? "disabled" : "base"} as="h3">
-                                                            {name}
-                                                        </Text>
-                                                        {defined ? null :
-                                                            <Badge tone="warning-strong">UNDEFINED</Badge>
-                                                        }
-                                                    </InlineStack>
-                                                </ResourceItem>
-                                            );
-                                        }}
+      <Layout>
+        <Layout.Section variant="oneThird">
+          <Card padding="0">
+            {hasDefinitions && (
+              <ResourceList
+                items={paginatedDefinitions}
+                renderItem={(item: any) => {
+                  const {id, name, defined} = item;
+                  return (
+                    <ResourceItem
+                      id={id}
+                      accessibilityLabel={`View details for ${name}`}
+                      name={name}
+                      onClick={() => setSelectedDefinition(id)}
+                      disabled={selectedDefinition === id}
+                    >
+                      <InlineStack gap="300">
+                        <Text variant="bodyMd" fontWeight={id === selectedDefinition ? "regular" : "bold"} tone={id === selectedDefinition ? "disabled" : "base"} as="h3">
+                          {name}
+                        </Text>
+                        {defined ? null :
+                          <Badge tone="warning-strong">UNDEFINED</Badge>
+                        }
+                      </InlineStack>
+                    </ResourceItem>
+                  );
+                }}
+                filterControl={
+                  <BlockStack gap="100">
+                    <InlineStack direction="row-reverse">
+                        <Button variant={"primary"} onClick={() => handleAdd()}>Add New</Button>
+                    </InlineStack>
+                    <Filters
+                      queryValue={queryValue}
+                      onQueryChange={handleQueryChange}
+                      onQueryClear={handleQueryClear}
+                      filters={filters}
+                      appliedFilters={appliedFilters}
+                      onClearAll={() => {
+                        setQueryValue('');
+                        setStatus(['ALL']);
+                      }}
+                    />
+                  </BlockStack>
+                }
+              />
+            )}
+            {totalPages > 1 && (
+              <Box padding="400">
+                <LegacyStack distribution="center">
+                  <Pagination
+                    hasPrevious={currentPage > 1}
+                    onPrevious={() => setCurrentPage(prev => prev - 1)}
+                    hasNext={currentPage < totalPages}
+                    onNext={() => setCurrentPage(prev => prev + 1)}
+                  />
+                </LegacyStack>
+              </Box>
+            )}
+          </Card>
+        </Layout.Section>
+        <Layout.Section>
+          {(selectedDefinition || hasValidationsWithoutDefinitions) && (
+            <Card>
+                  <BlockStack gap="400">
+                    <InlineGrid gap="400" columns={['twoThirds', 'oneThird']} alignItems="center">
+                      <Text variant="headingLg" as="h2">
+                        {selectedDefinitionData?.name || tabs[selected].content}
+                      </Text>
+                      <InlineStack direction="row-reverse">
+                        <ButtonGroup>
+                            <Button onClick={handleCancel} disabled={areValidationsUnchanged && areFieldsUnchanged}>Cancel</Button>
+                            {selectedDefinitionData && (
+                              <Button onClick={handleDeleteDefinition} disabled={selectedDefinitionData.isUsed === true} tone="critical" variant="primary">Delete</Button>
+                            )}
+                            <Button onClick={handleSave} disabled={areValidationsUnchanged && areFieldsUnchanged} variant="primary">Save</Button>
+                        </ButtonGroup>
+                      </InlineStack>
+                    </InlineGrid>
+                    {loadingDefinition ? (
+                      <LegacyStack distribution="center">
+                        <Spinner accessibilityLabel="Loading definition details" size="large" />
+                      </LegacyStack>
+                    ) : definitionError ? (
+                      <Text as="p" variant="headingSm" tone="critical">Error: {definitionError}</Text>
+                    ) : editedDefinitionData && (
+                      editedDefinitionData.fields.map(field => {
+                        if (field.options && field.options.length > 0) {
+                            if (field.type.startsWith("list.")) {
+                                return (
+                                    <ChoiceList 
+                                        key={field.key}
+                                        allowMultiple
+                                        title={field.name}
+                                        choices={field.options}
+                                        selected={field.value || []}
+                                        onChange={(newValue: string[]) => handleFieldChange(field.key, newValue, field.type)}
                                     />
-                                    {currentTab?.moreDefinitions ?
-                                        <Box borderColor="border" borderWidth="025" borderRadius="150" padding="100">
-                                            <Text variant="bodyMd" as="p" alignment="center">There are additional definitions. Please refine with search.</Text>
-                                        </Box>
-                                    : null}
-                                </BlockStack>
-                            </Card>
-                        :
-                            null
-                        }
-                    </Layout.Section>
-                    <Layout.Section>
-                        {defintionFetcher.state === "loading" || defintionFetcher.state === "submitting" ?
-                            <Card>
-                                <BlockStack gap="200">
-                                    <Text variant="headingMd" as="h2">Loading Details...</Text>
-                                    <SkeletonBodyText lines={3} />
-                                </BlockStack>
-                            </Card>
-                        : (currentDefinition !== null && currentDefinition !== undefined) || currentValidations.length !== 0 ?
-                            <Card>
-                                <BlockStack gap="400">
-                                    <InlineGrid gap="400" columns={['twoThirds', 'oneThird']} alignItems="center">
-                                        <Text variant="headingLg" as="h2" key="Heading">
-                                            {currentValidations.length === 0 && currentDefinition ?
-                                                currentDefinition.name
-                                            :
-                                                tabs[selectedTab].content
-                                            }
-                                        </Text>
-                                        <InlineStack direction="row-reverse">
-                                            <ButtonGroup>
-                                                <Button onClick={handleCancel} disabled={!isCurrentDefinitionChanged}>Cancel</Button>
-                                                {currentValidations.length === 0 ?
-                                                    <Button variant="primary" tone="critical" onClick={() => handleDelete(selectedDefinition)} disabled={currentDefinition ? currentDefinition.isUsed : true}>Delete</Button>
-                                                : null }
-                                                <Button variant="primary" onClick={() => handleSave(tabs[selectedTab].id, tabs[selectedTab].id)} disabled={!isCurrentDefinitionChanged}>Save</Button>
-                                            </ButtonGroup>
-                                        </InlineStack>
-                                    </InlineGrid>
-                                    {currentValidations.length === 0 ?
-                                        <>
-                                            {currentDefinition?.fields.map((field, index) => {
-                                                if (field.options && field.options.length > 0) {
-                                                    if (field.type.startsWith("list.")) {
-                                                        return (
-                                                            <ChoiceList 
-                                                                allowMultiple
-                                                                title={field.name}
-                                                                choices={field.options}
-                                                                selected={JSON.parse(field.value)}
-                                                                onChange={(newValue: string[]) => handleFieldChange(field.key, newValue)}
-                                                            />
-                                                        );
-                                                    } else {
-                                                        return (
-                                                            <Select
-                                                                label={field.name}
-                                                                options={field.options}
-                                                                value={field.value}
-                                                                onChange={(newValue: string) => handleFieldChange(field.key, newValue)}
-                                                            />
-                                                        );
-                                                    }
-                                                } else {
-                                                    if (field.type === "single_line_text_field") {
-                                                        return (
-                                                            <TextField 
-                                                                label={field.name}
-                                                                value={field.value ? field.value : ""}
-                                                                onChange={(newValue: string) => handleFieldChange(field.key, newValue)}
-                                                                autoComplete="off"
-                                                            />
-                                                        );
-                                                    } else if (field.type === "list.single_line_text_field") {
-                                                        return (
-                                                            <Box borderColor="border" borderWidth="025" borderRadius="150" padding="100">
-                                                                <BlockStack gap="100">
-                                                                    <Text as="p" variant="bodyMd" >{field.name}</Text>
-                                                                    {field.value ? JSON.parse(field.value).filter((option: string) => option != field.name).map((option: string, valueIndex: number) => (
-                                                                        <InlineGrid gap="200" alignItems="center" columns={["twoThirds", "oneThird"]} >
-                                                                            <TextField 
-                                                                                label={option}
-                                                                                labelHidden
-                                                                                value={option}
-                                                                                autoComplete="off"
-                                                                                onChange={(newValue: string) => handleValidationChange(valueIndex, newValue, field.key)}
-                                                                            />
-                                                                            <InlineGrid gap="200" columns={3}>
-                                                                                <Button icon={ChevronUpIcon} onClick={() => handleMove(valueIndex, "UP", field.key)} disabled={index === 0}></Button>
-                                                                                <Button icon={ChevronDownIcon} onClick={() => handleMove(valueIndex, "DOWN", field.key)} disabled={index === JSON.parse(field.value).length - 1}></Button>
-                                                                                <Button variant="primary" tone="critical" icon={DeleteIcon} onClick={() => handleRemove(index, field.key)} disabled={JSON.parse(field.value).length === 1}></Button>
-                                                                            </InlineGrid>
-                                                                        </InlineGrid>
-                                                                    )): null}
-                                                                    <Button fullWidth variant="primary" onClick={() => addValidation(field.key)}>Add New</Button>
-                                                                </BlockStack>
-                                                            </Box>
-                                                        );
-                                                    } else if (field.type === "multi_line_text_field") {
-                                                        return (
-                                                            <TextField 
-                                                                label={field.name}
-                                                                value={field.value ? field.value : ""}
-                                                                onChange={(newValue: string) => handleFieldChange(field.key, newValue)}
-                                                                autoComplete="off"
-                                                                multiline={4}
-                                                            />
-                                                        );
-                                                    } else if (field.type === "file_reference") {
-                                                        return (
-                                                            <DropZone 
-                                                                label={field.name}
-                                                                allowMultiple={false}
-                                                                onDrop={(files: File[]) => handleFieldChange(field.key, files[0])}
-                                                            >
-                                                                {field.value !== null ?
-                                                                    <BlockStack gap="200" inlineAlign="center">
-                                                                        <Thumbnail 
-                                                                            size="large"
-                                                                            alt={field.key}
-                                                                            source={field.value}
-                                                                        />
-                                                                        <Button>Replace file</Button>
-                                                                    </BlockStack>
-                                                                :
-                                                                    null
-                                                                }
-                                                                {field.value === null || false ?
-                                                                    <DropZone.FileUpload actionHint="Accepts JPEG, PNG, WEBP, SVG, HEIC, GIF, MOV and MP4. Files must be under 20MB." />
-                                                                :
-                                                                    null
-                                                                }
-                                                            </DropZone>
-                                                        );
-                                                    } else if (field.type === "boolean") {
-                                                        return (
-                                                            <ChoiceList 
-                                                                title={field.name}
-                                                                choices={[
-                                                                    { label: "Yes", value: "true" },
-                                                                    { label: "No", value: "false" }
-                                                                ]}
-                                                                selected={[...(field.value ? field.value : "false")]}
-                                                                onChange={(newValue: string[]) => handleFieldChange(field.key, newValue)}
-                                                            />
-                                                        );
-                                                    } else if (field.type === "money") {
-                                                        return (
-                                                            <TextField 
-                                                                label={field.name}
-                                                                value={field.value !== null ? JSON.parse(field.value) && JSON.parse(field.value).amount ? JSON.parse(field.value).amount : "" : ""}
-                                                                onChange={(newValue: string) => handleFieldChange(field.key, newValue)}
-                                                                autoComplete="off"
-                                                                type="currency"
-                                                                prefix="$"
-                                                            />
-                                                        );
-                                                    } else if (field.type === "number_integer") {
-                                                        return (
-                                                            <TextField 
-                                                                label={field.name}
-                                                                value={field.value ? field.value : ""}
-                                                                onChange={(newValue: string) => handleFieldChange(field.key, newValue)}
-                                                                autoComplete="off"
-                                                                type="integer"
-                                                            />
-                                                        );
-                                                    }
-                                                }
-                                            })}
-                                        </>
-                                    :
-                                        <>
-                                            {currentValidations.map((validation, index) => (
-                                                <InlineGrid gap="200" columns={['twoThirds', 'oneThird']} key={`${tabs[selectedTab].id}-${validation}`}>
-                                                    <TextField
-                                                        label="validation"
-                                                        labelHidden
-                                                        value={validation}
-                                                        onChange={(newValue: string) => handleValidationChange(index, newValue, "definition")}
-                                                        autoComplete="off"
+                                );
+                            } else {
+                                return (
+                                    <Select
+                                        key={field.key}
+                                        label={field.name}
+                                        options={field.options}
+                                        value={field.value}
+                                        onChange={(newValue: string) => handleFieldChange(field.key, newValue, field.type)}
+                                    />
+                                );
+                            }
+                        } else {
+                            if (field.type === "single_line_text_field") {
+                                return (
+                                    <TextField 
+                                        key={field.key}
+                                        label={field.name}
+                                        value={field.value}
+                                        onChange={(newValue: string) => handleFieldChange(field.key, newValue, field.type)}
+                                        autoComplete="off"
+                                    />
+                                );
+                            } else if (field.type === "list.single_line_text_field") {
+                                const listValue = Array.isArray(field.value) ? field.value : [];
+                                return (
+                                    <Box key={field.key} borderColor="border" borderWidth="025" borderRadius="150" padding="100">
+                                        <BlockStack gap="300">
+                                            <Text as="p" variant="bodyMd" >{field.name}</Text>
+                                            {listValue.map((listItem: string, index: number) => (
+                                              <InlineGrid key={index} gap="200" columns={['twoThirds', 'oneThird']}>
+                                                <TextField 
+                                                    label={listItem}
+                                                    labelHidden
+                                                    key={`${field.key}-${index}`}
+                                                    value={listItem}
+                                                    onChange={(newValue: string) => {
+                                                    const newList = [...listValue];
+                                                    newList[index] = newValue;
+                                                    handleFieldChange(field.key, newList, field.type);
+                                                    }}
+                                                    autoComplete="off"
+                                                />
+                                                <InlineGrid gap="200" columns={3}>
+                                                    <Button 
+                                                        icon={ChevronUpIcon}
+                                                        onClick={() => handleMoveUpListItem(field.key, index)}
+                                                        disabled={index === 0}
                                                     />
-                                                    <InlineGrid gap="200" columns={3}>
-                                                        <Button icon={ChevronUpIcon} onClick={() => handleMove(index, "UP", "definition")} disabled={index === 0}></Button>
-                                                        <Button icon={ChevronDownIcon} onClick={() => handleMove(index, "DOWN", "definition")} disabled={index === currentValidations.length - 1}></Button>
-                                                        <Button variant="primary" tone="critical" icon={DeleteIcon} onClick={() => handleRemove(index, "definition")} disabled={currentValidations.length === 1}></Button>
-                                                    </InlineGrid>
+                                                    <Button 
+                                                        icon={ChevronDownIcon}
+                                                        onClick={() => handleMoveDownListItem(field.key, index, listValue.length)}
+                                                        disabled={index === listValue.length - 1}
+                                                    />
+                                                    <Button 
+                                                        variant="primary" 
+                                                        tone="critical" 
+                                                        icon={DeleteIcon}
+                                                        onClick={() => handleDeleteListItem(field.key, index)}
+                                                    />
                                                 </InlineGrid>
+                                              </InlineGrid>
                                             ))}
-                                            <Button fullWidth variant="primary" onClick={() => addValidation("definition")} key="AddNewValidation">Add New {tabs[selectedTab].content}</Button>
-                                        </>
-                                    }
-                                </BlockStack>
-                            </Card>
-                        : 
-                            null
+                                            <Button onClick={() => {
+                                              const updatedList = [...(Array.isArray(field.value) ? field.value : []), ""];
+                                              handleFieldChange(field.key, updatedList, field.type);
+                                            }} variant='primary'>Add Item</Button>
+                                        </BlockStack>
+                                    </Box>
+                                );
+                            } else if (field.type === "multi_line_text_field") {
+                                return (
+                                    <TextField 
+                                        key={field.key}
+                                        label={field.name}
+                                        value={field.value || ""}
+                                        onChange={(newValue: string) => handleFieldChange(field.key, newValue, field.type)}
+                                        autoComplete="off"
+                                        multiline={4}
+                                    />
+                                );
+                            } else if (field.type === "file_reference") {
+                                return (
+                                    <div>{field.name}</div>
+                                )
+                                //TODO
+                            } else if (field.type === "boolean") {
+                                return (
+                                    <ChoiceList 
+                                        key={field.key}
+                                        title={field.name}
+                                        choices={[
+                                            { label: "Yes", value: "true" },
+                                            { label: "No", value: "false" }
+                                        ]}
+                                        selected={[field.value ? "true" : "false"]}
+                                        onChange={(newValue: string[]) => handleFieldChange(field.key, newValue[0] === "true", field.type)}
+                                    />
+                                );
+                            } else if (field.type === "money") {
+                                return (
+                                    <TextField 
+                                        key={field.key}
+                                        label={field.name}
+                                        value={field.value?.amount || ""}
+                                        onChange={(newValue: string) => handleFieldChange(field.key, newValue, field.type)}
+                                        autoComplete="off"
+                                        type="currency"
+                                        prefix="$"
+                                    />
+                                );
+                            } else if (field.type === "number_integer") {
+                                return (
+                                    <TextField 
+                                        key={field.key}
+                                        label={field.name}
+                                        value={field.value?.toString() || ""}
+                                        onChange={(newValue: string) => handleFieldChange(field.key, newValue, field.type)}
+                                        autoComplete="off"
+                                        type="number"
+                                    />
+                                );
+                            }
                         }
-                    </Layout.Section>
-                </Layout>
-                <FooterHelp>
-                    For any questions or help please submit a ticket to the HelpDesk.
-                </FooterHelp>
-            </BlockStack>
-        </Page>
+                      })
+                    )}
+                    {editedValidations && editedValidations.length > 0 && (
+                        <>
+                            {editedValidations.map((val: string, index: number) => (
+                                <InlineGrid key={index} gap="200" columns={['twoThirds', 'oneThird']}>
+                                    <TextField
+                                    label={val}
+                                    labelHidden
+                                    value={editedValidations[index]}
+                                    onChange={(newValue: any) => handleValidationChange(newValue, index)}
+                                    autoComplete="off"
+                                    />
+                                    <InlineGrid gap="200" columns={3}>
+                                        <Button 
+                                            onClick={() => handleMoveUpValidation(index)}
+                                            icon={ChevronUpIcon} 
+                                            disabled={index === 0}
+                                        />
+                                        <Button 
+                                            onClick={() => handleMoveDownValidation(index)}
+                                            icon={ChevronDownIcon} 
+                                            disabled={index === editedValidations.length - 1}
+                                        />
+                                        <Button 
+                                            onClick={() => handleDeleteValidation(index)} 
+                                            variant="primary" 
+                                            tone="critical" 
+                                            icon={DeleteIcon} 
+                                            disabled={editedValidations.length <= 1}
+                                        />
+                                    </InlineGrid>
+                                </InlineGrid>
+                            ))}
+                            <Button onClick={handleAddNewValidation} variant="primary" fullWidth>
+                                {`Add New ${tabs[selected].content}`}
+                            </Button>
+                        </>
+                    )}
+                  </BlockStack>
+            </Card>
+          )}
+        </Layout.Section>
+      </Layout>
     );
-}
+  };
 
-function areDefinitionsDifferent(obj1: DefinitionReply | null, obj2: DefinitionReply | null):boolean {
-    console.log("test1");
-    if (obj1 === null) {
-        if (obj2 === null) {
-            return false;
-        }
-        return true;
-    }
-    console.log("test2");
-    if (obj2 === null) {
-        return true;
-    }
-    console.log("test3");
-    if (obj1.fields.length !== obj2.fields.length) {
-        return true;
-    }
-    console.log("test4");
-    for (let i = 0; i < obj1.fields.length; i++) {
-        if (obj1.fields[i].value !== obj2.fields[i].value) {
-            return true;
-        }
-    }
-    console.log("test5");
-    return false;
-}
-
-function areValidationsDifferent(arr1: string[], arr2: string[]): boolean {
-    if (arr1.length !== arr2.length) {
-        return true;
-    }
-    for (let i = 0; i < arr1.length; i++) {
-        if (arr1[i] !== arr2[i]) {
-            return true;
-        }
-    }
-    return false;
+  return (
+    <Page 
+      fullWidth
+      title="Product Definitions"
+      backAction={backAction}
+    >
+      <BlockStack gap="500">
+        <Tabs tabs={tabs} selected={selected} onSelect={handleTabChange} fitted />
+        {renderContent()}
+        <FooterHelp>
+            For any questions or help please submit a ticket to the HelpDesk.
+        </FooterHelp>
+      </BlockStack>
+    </Page>
+  );
 }

@@ -39,8 +39,6 @@ export async function action({request, params}: ActionFunctionArgs) {
         }
     }
 
-    //loop through if field value === "NULL" pop out of list
-
     const upsertResponse = await admin.graphql(
         `#graphql
             mutation UpsertMetaobject($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
@@ -59,7 +57,7 @@ export async function action({request, params}: ActionFunctionArgs) {
                     type: handleResult.data.metaobject.type
                 },
                 metaobject: {
-                    fields: fields.filter(field => field.value !== null).map(field => ({
+                    fields: fields.filter(field => field.value !== null && field.value !== "NULL").map(field => ({
                         key: field.key, 
                         value: field.value
                     }))

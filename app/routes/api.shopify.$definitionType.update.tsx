@@ -53,13 +53,13 @@ export async function action({request, params}: ActionFunctionArgs) {
             `,
             {
                 variables: {
-                    type: params.definitionType
+                    type: params.definitionType === "occasionName" ? "occasion" : params.definitionType
                 }
             }
         );
 
         const typeResult = await typeResponse.json();
-        
+
         const response = await admin.graphql(
             `#graphql
                 mutation UpdateMetaobjectDefinition($id: ID!, $definition: MetaobjectDefinitionUpdateInput!) {
@@ -78,7 +78,7 @@ export async function action({request, params}: ActionFunctionArgs) {
                         fieldDefinitions: [
                             {
                                 update: {
-                                    key: params.definitionType === "occasion" ? "name" : "group",
+                                    key: params.definitionType === "occasionName" ? "name" : "group",
                                     validations: [
                                         {
                                             name: "choices",

@@ -14,7 +14,6 @@ export interface DefinitionPreview {
 }
 
 export interface TabReply {
-    moreDefinitions: boolean;
     definitions: DefinitionPreview[];
     validations: string[] | null;
 }
@@ -25,7 +24,6 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
     let reply: TabReply = {
         definitions: [],
-        moreDefinitions: false,
         validations: null
     }
 
@@ -87,6 +85,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     } else {
         const url = new URL(request.url);
         const searchTerm = url.searchParams.get("search");
+        const filter = url.searchParams.get("definition");
 
         let query = `${searchTerm ? `display_name:${searchTerm}` : ""}`;
 
@@ -94,48 +93,59 @@ export async function loader({request, params}: LoaderFunctionArgs) {
             query = `${searchTerm ? `display_name:${searchTerm} OR fields.name_map:${searchTerm}` : ""}`
         }
 
+        if (filter !== "ALL") {
+            query = query + `${query === "" ? "" : " "}${filter === "UNDEFINED" ? "NOT " : ""}fields.definition: true`
+        }
+
         let variables = {
             type: params.definitionType,
             query: query,
+            cursor: null
         }
 
-        const response = await admin.graphql(
-            `#graphql
-                query getDefinitions($type: String!, $query: String) {
-                    metaobjects(type: $type, query: $query, first: 50, sortKey: "updated_at") {
-                        pageInfo {
-                            hasNextPage
-                        }
-                        nodes {
-                            displayName
-                            id
-                            defined: field(key: "definition") {
-                                value
+        const definitionList: Definition[] = [];
+        let moreDefinitions: boolean = true;
+
+        while (moreDefinitions) {
+            const response = await admin.graphql(
+                `#graphql
+                    query getDefinitions($type: String!, $query: String, $cursor: String) {
+                        metaobjects(type: $type, query: $query, first: 250, sortKey: "updated_at", reverse: true, after: $cursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                            nodes {
+                                displayName
+                                id
+                                defined: field(key: "definition") {
+                                    value
+                                }
                             }
                         }
                     }
+                `,
+                {
+                    variables: variables
                 }
-            `,
-            {
-                variables: variables
-            }
-        );
+            );
 
-        const result = await response.json();
+            const result = await response.json();
 
-        const definitionList: Definition[] = [];
-
-        result.data.metaobjects.nodes.forEach((definition: any) => {
-            definitionList.push({
-                id: definition.id,
-                name: definition.displayName,
-                defined: definition.defined? definition.defined.value === 'true': false 
+            result.data.metaobjects.nodes.forEach((definition: any) => {
+                definitionList.push({
+                    id: definition.id,
+                    name: definition.displayName,
+                    defined: definition.defined? definition.defined.value === 'true': false 
+                });
             });
-        });
+
+            moreDefinitions = result.data.metaobjects.pageInfo.hasNextPage;
+            variables.cursor = result.data.metaobjects.pageInfo.endCursor;
+        }
 
         reply = {
             definitions: definitionList,
-            moreDefinitions: result.data.metaobjects.pageInfo.hasNextPage,
             validations: null
         };
     }
