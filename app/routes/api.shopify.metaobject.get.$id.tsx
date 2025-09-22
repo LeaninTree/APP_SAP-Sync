@@ -12,6 +12,7 @@ export interface Field {
     type: string;
     name: string;
     options?: Option[];
+    url?: string;
 }
 
 export interface DefinitionReply {
@@ -125,7 +126,8 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
             const mediaResult = await mediaResponse.json();
 
-            tempValue = mediaResult.data.node.image.url;
+            tempField.value = field.value;
+            tempField.url = mediaResult.data.node.image.url;
         }
 
         if (field.definition.validations.length > 0) {

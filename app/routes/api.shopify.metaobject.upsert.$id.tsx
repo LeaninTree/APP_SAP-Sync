@@ -59,7 +59,7 @@ export async function action({request, params}: ActionFunctionArgs) {
                 metaobject: {
                     fields: fields.filter(field => field.value !== null && field.value !== "NULL").map(field => ({
                         key: field.key, 
-                        value: field.value
+                        value: field.value.toString()
                     }))
                 }
             }

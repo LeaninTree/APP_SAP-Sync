@@ -21,9 +21,11 @@ import {
   TextField,
   ButtonGroup,
   Select,
-  ChoiceList
+  ChoiceList,
+  DropZone,
+  Thumbnail,
 } from '@shopify/polaris';
-import { DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@shopify/polaris-icons';
+import { DeleteIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon } from '@shopify/polaris-icons';
 
 // These types are just for local development and may not exist in a real environment
 type DefinitionPreview = {
@@ -43,6 +45,7 @@ type Field = {
   type: string;
   name: string;
   options?: { label: string, value: string }[];
+  url?: string;
 }
 
 type DefinitionReply = {
@@ -68,7 +71,7 @@ export default function App() {
   const [status, setStatus] = useState<string[] | undefined>(['ALL']);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
-  const itemsPerPage = 50;
+  const itemsPerPage = 15;
 
   const tabs = [
     {
@@ -319,7 +322,7 @@ export default function App() {
   };
   
   const handleFieldChange = useCallback(
-    (key: string, newValue: any, type: string) => {
+    (key: string, newValue: any, type: string, newUrl?: string) => {
       if (editedDefinitionData) {
         const updatedFields = editedDefinitionData.fields.map(field => {
           if (field.key === key) {
@@ -331,7 +334,7 @@ export default function App() {
             } else if (type === 'boolean') {
               valueToUpdate = String(newValue);
             }
-            return { ...field, value: valueToUpdate };
+            return { ...field, value: valueToUpdate, url: newUrl };
           }
           return field;
         });
@@ -339,6 +342,36 @@ export default function App() {
       }
     },
     [editedDefinitionData],
+  );
+
+  const handleDropZoneDrop = useCallback(
+    async (files: File[], key: string, type: string) => {
+      if (files.length > 0) {
+        setLoadingDefinition(true);
+        const file = files[0];
+        console.log(file);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('/api/shopify/media/create', {
+            method: 'POST',
+            body: formData,
+          });
+          const data: { success: boolean; url: string | null; id: string | null } = await response.json();
+          if (data.success && data.url && data.id) {
+            handleFieldChange(key, data.id, type, data.url);
+          } else {
+            setDefinitionError('Failed to upload file.');
+          }
+        } catch (e: any) {
+          setDefinitionError(e.message);
+        } finally {
+          setLoadingDefinition(false);
+        }
+      }
+    },
+    [handleFieldChange]
   );
   
   const handleSave = useCallback(async () => {
@@ -473,7 +506,7 @@ export default function App() {
     (index: number) => {
       if (editedValidations && index > 0) {
         const newValidations = [...editedValidations];
-        [newValidations[index - 1], newValidations[index]] = [newValidations[index], newValidations[index - 1]];
+        [newValidations[index - 1], newValidations[index]] = [newValidations[index], newValidations[index + 1]];
         setEditedValidations(newValidations);
       }
     },
@@ -565,7 +598,6 @@ export default function App() {
     return filters;
   }, [status]);
 
-
   const renderContent = () => {
     if (loading) {
       return (
@@ -586,7 +618,6 @@ export default function App() {
       <Layout>
         <Layout.Section variant="oneThird">
           <Card padding="0">
-            {hasDefinitions && (
               <ResourceList
                 items={paginatedDefinitions}
                 renderItem={(item: any) => {
@@ -629,7 +660,6 @@ export default function App() {
                   </BlockStack>
                 }
               />
-            )}
             {totalPages > 1 && (
               <Box padding="400">
                 <LegacyStack distribution="center">
@@ -763,10 +793,33 @@ export default function App() {
                                     />
                                 );
                             } else if (field.type === "file_reference") {
+                                const fileUpload = !field.value && <DropZone.FileUpload />;
+                                const uploadedFile = field.value && (
+                                    <Box padding="200">
+                                        <BlockStack gap="150" inlineAlign="center">
+                                            <Thumbnail
+                                                size="large"
+                                                alt={field.name}
+                                                source={field.url as string}
+                                            />
+                                            <Button onClick={() => handleFieldChange(field.key, '', field.type)} tone="critical">Remove</Button>
+                                        </BlockStack>
+                                    </Box>
+                                );
+                                
                                 return (
-                                    <div>{field.name}</div>
-                                )
-                                //TODO
+                                    <DropZone
+                                        key={field.key}
+                                        label={field.name}
+                                        onDrop={(files) => handleDropZoneDrop(files, field.key, field.type)}
+                                        accept="image/*"
+                                        type="image"
+                                        allowMultiple={false}
+                                    >
+                                        {uploadedFile}
+                                        {fileUpload}
+                                    </DropZone>
+                                );
                             } else if (field.type === "boolean") {
                                 return (
                                     <ChoiceList 
