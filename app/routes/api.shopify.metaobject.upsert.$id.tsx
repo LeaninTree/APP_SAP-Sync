@@ -39,6 +39,12 @@ export async function action({request, params}: ActionFunctionArgs) {
         }
     }
 
+    function isValueBoolean(value: any): boolean {
+        return typeof value === 'boolean';
+    }
+
+    console.log(fields);
+
     const upsertResponse = await admin.graphql(
         `#graphql
             mutation UpsertMetaobject($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
@@ -57,9 +63,24 @@ export async function action({request, params}: ActionFunctionArgs) {
                     type: handleResult.data.metaobject.type
                 },
                 metaobject: {
-                    fields: fields.filter(field => field.value !== null && field.value !== "NULL").map(field => ({
+                    fields: fields.filter(field => field.value !== null && field.value !== "NULL").map(field => {
+                        if (field.type === 'money') {
+                            const tempValue = JSON.parse(field.value);
+                            return {
+                                key: field.key,
+                                value: JSON.stringify({
+                                    amount: Number(tempValue.amount),
+                                    currency_code: tempValue.currency_code
+                                }),
+                                type: field.type,
+                                name: field.name
+                            }
+                        } else {
+                            return field;
+                        }
+                    }).map(field => ({
                         key: field.key, 
-                        value: field.value.toString()
+                        value: isValueBoolean(field.value) ? field.value.toString() : field.value
                     }))
                 }
             }
@@ -67,6 +88,8 @@ export async function action({request, params}: ActionFunctionArgs) {
     );
 
     const upsertResult = await upsertResponse.json();
+
+    console.log(upsertResult.data.metaobjectUpsert.userErrors);
 
     if (upsertResult.data.metaobjectUpsert.userErrors.length > 0) {
         return new Response(JSON.stringify({status: "error"}), {
