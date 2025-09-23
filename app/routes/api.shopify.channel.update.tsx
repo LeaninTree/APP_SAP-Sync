@@ -139,8 +139,6 @@ export async function action({request}: ActionFunctionArgs) {
         return ruleItem;
     }).filter((ruleItem: string) => ruleItem.startsWith("gid://shopify/Metaobject/"));
 
-    console.log(channel);
-
     const channelResponse = await admin.graphql(
         `#graphql
             mutation UpsertChannel($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {

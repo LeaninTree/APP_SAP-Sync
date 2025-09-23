@@ -18,6 +18,8 @@ import {
 } from "@shopify/polaris";
 import { useFetcher } from "@remix-run/react";
 import { useCallback, useState, useEffect } from "react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { authenticate } from "app/shopify.server";
 
 interface ProductPreview {
   id: string;
@@ -34,6 +36,32 @@ interface Reply {
     products?: any[];
     moreProducts?: boolean;
     lastCursor?: string;
+}
+
+export async function loader({request}: LoaderFunctionArgs) {
+  const { admin } = await authenticate.admin(request);
+
+  const typeResponse = await admin.graphql(
+    `#graphql
+      query GetTypeOptions($type: String!) {
+        metaobjects(type: $type, first: 250) {
+          nodes {
+            displayName
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    `,
+    {
+      variables: {
+        type: "product_type"
+      }
+    }
+  );
+
 }
 
 export default function Index() {

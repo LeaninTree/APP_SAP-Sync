@@ -305,6 +305,7 @@ async function occasionDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
 }
 
 async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, product: string, definitionId: string) {
+    console.log("TEST1", definitionId);
     const definitionResponse = await admin.graphql(
         `#graphql
             query GetDefinition($id: ID!) {
@@ -347,6 +348,7 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
     );
 
     const definitionResult = await definitionResponse.json();
+    console.log("TEST2", definitionResult.data.metaobject.assortment);
 
     const getAssortmentResponse = await admin.graphql(
         `#graphql
@@ -366,6 +368,7 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
     );
 
     const getAssortmentResult = await getAssortmentResponse.json();
+    console.log("TEST3", product);
 
     const productResponse = await admin.graphql(
         `#graphql
