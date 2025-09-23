@@ -398,7 +398,7 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
                                         location {
                                             id
                                         }
-                                        quantities(names: ["avaliable"]) {
+                                        quantities(names: "avaliable") {
                                             quantity
                                         }
                                     }

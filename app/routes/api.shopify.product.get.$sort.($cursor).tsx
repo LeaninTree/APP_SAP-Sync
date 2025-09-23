@@ -26,15 +26,48 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     const searchTerm = url.searchParams.get("search");
     const brandTerm = url.searchParams.get("brand");
     const typeTerm = url.searchParams.get("product_type");
-    //TODO get other search params
 
     const splitSort = params.sort?.toUpperCase().split("-");
     const sortKey = splitSort ? splitSort[0] : "TITLE";
     const direction = splitSort ? splitSort[1] : "ASC";
 
+    let queryString: string = "status:ACTIVE";
+
+    if (searchTerm) {
+        queryString = `(${searchTerm}) AND ` + queryString;
+    }
+
+    if (brandTerm) {
+        const brandArray = JSON.parse(brandTerm);
+        let brandString = "";
+        for (let i = 0; i < brandArray.length; i++) {
+            if (i === 0) {
+                brandString = `vendor:${brandArray[i]}`;
+            } else {
+                brandString = brandString + ` OR vendor:${brandArray[i]}`;
+            }
+        }
+        queryString = queryString + ` AND (${brandString})`;
+    }
+
+    if (typeTerm) {
+        const typeArray = JSON.parse(typeTerm);
+        let typeString = "";
+        for (let i = 0; i < typeArray.length; i++) {
+            if (i === 0) {
+                typeString = `product_type:${typeArray[0]}`;
+            } else {
+                typeString = typeString + ` OR product_type:${typeArray[i]}`;
+            }
+        }
+        queryString = queryString + ` AND (${typeString})`;
+    }
+
+    console.log(queryString);
+
     let variables = {
         cursor: params.cursor ? params.cursor : null,
-        query: `${searchTerm ? `(${searchTerm}) AND (` : ""}status:ACTIVE${searchTerm ? ")": ""}`,
+        query: queryString,
         sortKey: sortKey,
         reverse: direction === "DESC" ? true : false
     }

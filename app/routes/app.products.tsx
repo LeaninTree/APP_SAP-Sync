@@ -14,7 +14,7 @@ import {
   IndexFiltersMode,
   Box,
   FooterHelp,
-  TextField
+  ChoiceList
 } from "@shopify/polaris";
 import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useCallback, useState, useEffect } from "react";
@@ -49,7 +49,7 @@ export async function loader({request}: LoaderFunctionArgs) {
     const typeResponse = await admin.graphql(
       `#graphql
         query GetTypeOptions($type: String!) {
-          metaobjects(type: $type, first: 250) {
+          metaobjects(type: $type, first: 250, query: "fields.definition:true") {
             nodes {
               displayName
             }
@@ -72,7 +72,7 @@ export async function loader({request}: LoaderFunctionArgs) {
     typeCursor = typeResult.data.metaobjects.pageInfo.endCursor;
     typeMoreProducts = typeResult.data.metaobjects.pageInfo.hasNextPage;
 
-    typeResult.data.nodes.forEach((metaobject: any) => typeList.push({
+    typeResult.data.metaobjects.nodes.forEach((metaobject: any) => typeList.push({
       label: metaobject.displayName,
       value: metaobject.displayName
     }));
@@ -86,7 +86,7 @@ export async function loader({request}: LoaderFunctionArgs) {
     const brandResponse = await admin.graphql(
       `#graphql
         query GetBrandOptions($type: String!) {
-          metaobjects(type: $type, first: 250) {
+          metaobjects(type: $type, first: 250, query: "fields.definition:true") {
             nodes {
               name: field(key: "name") {
                 value
@@ -111,7 +111,7 @@ export async function loader({request}: LoaderFunctionArgs) {
     brandCursor = brandResult.data.metaobjects.pageInfo.endCursor;
     brandMoreProducts = brandResult.data.metaobjects.pageInfo.hasNextPage;
 
-    brandResult.data.nodes.forEach((metaobject: any) => brandList.push({
+    brandResult.data.metaobjects.nodes.forEach((metaobject: any) => brandList.push({
       label: metaobject.name.value,
       value: metaobject.name.value
     }));
@@ -156,12 +156,12 @@ export default function Index() {
   const {mode, setMode} = useSetIndexFiltersMode(IndexFiltersMode.Filtering);
   
   const [queryValue, setQueryValue] = useState<string | undefined>(undefined);
-  const [brandFilter, setBrandFilter] = useState('');
-  const [productTypeFilter, setProductTypeFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState<string[]>([]);
+  const [productTypeFilter, setProductTypeFilter] = useState<string[]>([]);
 
   const handleQueryValueChange = useCallback((value: string) => setQueryValue(value), []);
-  const handleBrandFilterChange = useCallback((value: string) => setBrandFilter(value), []);
-  const handleProductTypeFilterChange = useCallback((value: string) => setProductTypeFilter(value), []);
+  const handleBrandFilterChange = useCallback((value: string[]) => setBrandFilter(value), []);
+  const handleProductTypeFilterChange = useCallback((value: string[]) => setProductTypeFilter(value), []);
 
   const handleQueryValueRemove = useCallback(() => {
     setQueryValue('');
@@ -169,8 +169,8 @@ export default function Index() {
 
   const handleFiltersClearAll = useCallback(() => {
     handleQueryValueRemove();
-    setBrandFilter('');
-    setProductTypeFilter('');
+    setBrandFilter([]);
+    setProductTypeFilter([]);
   }, [
     handleQueryValueRemove,
   ]);
@@ -181,8 +181,8 @@ export default function Index() {
     const sortHandle = sortSelected[0].replace(/ /g, '-');
     const searchParams = new URLSearchParams();
     if (queryValue) searchParams.append('search', queryValue);
-    if (brandFilter) searchParams.append('brand', brandFilter);
-    if (productTypeFilter) searchParams.append('product_type', productTypeFilter);
+    if (brandFilter.length > 0) searchParams.append('brand', JSON.stringify(brandFilter));
+    if (productTypeFilter.length > 0) searchParams.append('product_type', JSON.stringify(productTypeFilter));
     
     const queryString = searchParams.toString();
     const cursorPath = cursor ? `/${cursor}` : "";
@@ -229,12 +229,12 @@ export default function Index() {
       key: 'brand',
       label: 'Brand',
       filter: (
-        <TextField
-          label="Brand"
-          value={brandFilter}
+        <ChoiceList
+          title="Brand"
+          selected={brandFilter}
+          choices={brandList}
           onChange={handleBrandFilterChange}
-          labelHidden
-          autoComplete="off"
+          allowMultiple
         />
       ),
       shortcut: true,
@@ -243,12 +243,12 @@ export default function Index() {
       key: 'productType',
       label: 'Product Type',
       filter: (
-        <TextField
-          label="Product Type"
-          value={productTypeFilter}
+        <ChoiceList
+          title="Product Type"
+          selected={productTypeFilter}
+          choices={typeList}
           onChange={handleProductTypeFilterChange}
-          labelHidden
-          autoComplete="off"
+          allowMultiple
         />
       ),
       shortcut: true,
@@ -304,15 +304,15 @@ export default function Index() {
   ));
 
   const appliedFilters = [
-    ...(brandFilter ? [{
+    ...(brandFilter.length > 0 ? [{
       key: 'brand',
-      label: `Brand: ${brandFilter}`,
-      onRemove: () => setBrandFilter(''),
+      label: `Brand: ${brandFilter[0]}`,
+      onRemove: () => setBrandFilter([]),
     }] : []),
-    ...(productTypeFilter ? [{
+    ...(productTypeFilter.length > 0 ? [{
       key: 'productType',
-      label: `Product Type: ${productTypeFilter}`,
-      onRemove: () => setProductTypeFilter(''),
+      label: `Product Type: ${productTypeFilter[0]}`,
+      onRemove: () => setProductTypeFilter([]),
     }] : [])
   ];
 
