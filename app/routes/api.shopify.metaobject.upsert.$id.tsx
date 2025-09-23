@@ -25,11 +25,23 @@ export async function action({request, params}: ActionFunctionArgs) {
 
     const handleResult = await handleResponse.json();
 
+    console.log("==========================================================================================================");
+    console.log("==========================================================================================================");
+    console.log(data);
+    console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+
     const fields: Field[] = [...JSON.parse(data)].filter((field: Field) => field.value !== "NULL").map((field: Field) => {
         if (field.value === null) {
-            return "";
+            return {
+                key: field.key,
+                value: "",
+                type: field.type,
+                name: field.name,
+                options: field.options,
+                url: field.url
+            };
         }
-        return field.value;
+        return field;
     });
     fields.push({
         key: "definition",
@@ -37,6 +49,9 @@ export async function action({request, params}: ActionFunctionArgs) {
         name: "Definition",
         type: "boolean"
     })
+    console.log(fields)
+    console.log("==========================================================================================================");
+    console.log("==========================================================================================================");
 
     function isValueBoolean(value: any): boolean {
         return typeof value === 'boolean';
