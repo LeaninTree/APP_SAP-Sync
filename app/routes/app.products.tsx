@@ -16,7 +16,7 @@ import {
   FooterHelp,
   TextField
 } from "@shopify/polaris";
-import { useFetcher } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useCallback, useState, useEffect } from "react";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { authenticate } from "app/shopify.server";
@@ -41,27 +41,83 @@ interface Reply {
 export async function loader({request}: LoaderFunctionArgs) {
   const { admin } = await authenticate.admin(request);
 
-  const typeResponse = await admin.graphql(
-    `#graphql
-      query GetTypeOptions($type: String!) {
-        metaobjects(type: $type, first: 250) {
-          nodes {
-            displayName
-          }
-          pageInfo {
-            hasNextPage
-            endCursor
+  let typeMoreProducts: boolean = true;
+  let typeCursor: string | null = null;
+  const typeList: {label: string, value: string}[] = [];
+
+  while (typeMoreProducts) {
+    const typeResponse = await admin.graphql(
+      `#graphql
+        query GetTypeOptions($type: String!) {
+          metaobjects(type: $type, first: 250) {
+            nodes {
+              displayName
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
           }
         }
+      `,
+      {
+        variables: {
+          type: "product_type"
+        }
       }
-    `,
-    {
-      variables: {
-        type: "product_type"
-      }
-    }
-  );
+    );
 
+    const typeResult = await typeResponse.json();
+
+    typeCursor = typeResult.data.metaobjects.pageInfo.endCursor;
+    typeMoreProducts = typeResult.data.metaobjects.pageInfo.hasNextPage;
+
+    typeResult.data.nodes.forEach((metaobject: any) => typeList.push({
+      label: metaobject.displayName,
+      value: metaobject.displayName
+    }));
+  }
+
+  let brandMoreProducts: boolean = true;
+  let brandCursor: string | null = null;
+  const brandList: {label: string, value: string}[] = [];
+
+  while (brandMoreProducts) {
+    const brandResponse = await admin.graphql(
+      `#graphql
+        query GetBrandOptions($type: String!) {
+          metaobjects(type: $type, first: 250) {
+            nodes {
+              name: field(key: "name") {
+                value
+              }
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      `,
+      {
+        variables: {
+          type: "brand"
+        }
+      }
+    );
+
+    const brandResult = await brandResponse.json();
+
+    brandCursor = brandResult.data.metaobjects.pageInfo.endCursor;
+    brandMoreProducts = brandResult.data.metaobjects.pageInfo.hasNextPage;
+
+    brandResult.data.nodes.forEach((metaobject: any) => brandList.push({
+      label: metaobject.name.value,
+      value: metaobject.name.value
+    }));
+  }
+
+  return { typeList, brandList };
 }
 
 export default function Index() {
@@ -71,6 +127,8 @@ export default function Index() {
   
   const [lastCursors, setLastCursors] = useState<string[]>([]);
   const [page, setPage] = useState(0);
+
+  const { typeList, brandList } = useLoaderData<typeof loader>();
 
   const emptyStateMarkup = (
     <EmptySearchResult
