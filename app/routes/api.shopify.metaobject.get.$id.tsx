@@ -1,26 +1,6 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { authenticate } from "app/shopify.server";
-
-interface Option {
-    label: string;
-    value: string;
-}
-
-export interface Field {
-    key: string;
-    value: string;
-    type: string;
-    name: string;
-    options?: Option[];
-    url?: string;
-}
-
-export interface DefinitionReply {
-    type: string;
-    name: string;
-    fields: Field[];
-    isUsed: boolean;
-}
+import { Field } from "./app.definitions";
 
 export async function loader({request, params}: LoaderFunctionArgs) {
 
@@ -96,7 +76,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
                 label: definition.displayName,
                 value: definition.id
             }));
-            if (field.key === "assortment" && tempField.options) {
+            if (tempField.options) {
                 tempField.options = [{
                     label: "",
                     value: "NULL"

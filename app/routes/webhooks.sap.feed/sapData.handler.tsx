@@ -1175,23 +1175,16 @@ export async function handleProductFeed(admin: AdminApiContextWithoutRest, data:
         {
 
         }
-    );
-
-    console.log("=====================================================================================================");
-    console.log("=====================================================================================================");
-    console.log(ITErrors);
-    console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    console.log(productStatus);
-    console.log("=====================================================================================================");
-    console.log("=====================================================================================================");
+    ); 
 
     const getShopMetafieldsResult = await getShopMetafieldsResponse.json();
 
-    const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
-    newITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
+    const tempITErrors: string[] = getShopMetafieldsResult.data.shop.itErrors !== null && getShopMetafieldsResult.data.shop.itErrors.value !== null ? [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)] : [];
+    
+    const newITErrors = tempITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
 
-    const newProductStatus = [...JSON.parse(getShopMetafieldsResult.data.shop.productStatus.value)];
-    newProductStatus.concat(productStatus.map(error => `[${error.code}] ${error.message}`));
+    const tempProductStatus = getShopMetafieldsResult.data.shop.productStatus !== null && getShopMetafieldsResult.data.shop.productStatus.value !== null ? [...JSON.parse(getShopMetafieldsResult.data.shop.productStatus.value)] : [];
+    const newProductStatus = tempProductStatus.concat(productStatus.map(error => `[${error.code}] ${error.message}`));
 
     const metafieldUpdateResponse = await admin.graphql(
         `#graphql

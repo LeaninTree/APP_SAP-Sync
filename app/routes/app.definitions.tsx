@@ -25,21 +25,10 @@ import {
   DropZone,
   Thumbnail,
 } from '@shopify/polaris';
-import { DeleteIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon } from '@shopify/polaris-icons';
+import { DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@shopify/polaris-icons';
+import { DefinitionPreview, TabReply } from './api.shopify.$definitionType.get';
 
-// These types are just for local development and may not exist in a real environment
-type DefinitionPreview = {
-  id: string;
-  name: string;
-  defined: boolean;
-};
-
-type TabReply = {
-  validations: string[] | null;
-  definitions: DefinitionPreview[];
-};
-
-type Field = {
+export type Field = {
   key: string;
   value: any;
   type: string;
@@ -349,7 +338,6 @@ export default function App() {
       if (files.length > 0) {
         setLoadingDefinition(true);
         const file = files[0];
-        console.log(file);
         const formData = new FormData();
         formData.append('file', file);
 

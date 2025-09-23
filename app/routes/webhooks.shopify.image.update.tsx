@@ -8,8 +8,6 @@ export async function action({ request }: ActionFunctionArgs) {
         return new Response("Unauthorized", { status: 401 });
     }
 
-    console.log(payload);
-
     const imagesUpdated = payload.media.filter((image: any) => {
         const updatedDate = new Date(image.created_at);
         const nowDate = new Date();

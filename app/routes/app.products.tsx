@@ -13,7 +13,8 @@ import {
   BlockStack,
   IndexFiltersMode,
   Box,
-  FooterHelp
+  FooterHelp,
+  TextField
 } from "@shopify/polaris";
 import { useFetcher } from "@remix-run/react";
 import { useCallback, useState, useEffect } from "react";
@@ -40,7 +41,7 @@ export default function Index() {
   const [products, setProducts] = useState<ProductPreview[]>([]);
   const [moreProducts, setMoreProducts] = useState(false);
   
-  const [prevProducts, setPrevProducts] = useState<ProductPreview[][]>([]);
+  const [lastCursors, setLastCursors] = useState<string[]>([]);
   const [page, setPage] = useState(0);
 
   const emptyStateMarkup = (
@@ -69,55 +70,104 @@ export default function Index() {
   const {mode, setMode} = useSetIndexFiltersMode(IndexFiltersMode.Filtering);
   
   const [queryValue, setQueryValue] = useState<string | undefined>(undefined);
+  const [brandFilter, setBrandFilter] = useState('');
+  const [productTypeFilter, setProductTypeFilter] = useState('');
 
   const handleQueryValueChange = useCallback((value: string) => setQueryValue(value), []);
+  const handleBrandFilterChange = useCallback((value: string) => setBrandFilter(value), []);
+  const handleProductTypeFilterChange = useCallback((value: string) => setProductTypeFilter(value), []);
 
-  const handleQueryValueRemove = useCallback(() => setQueryValue(''), []);
+  const handleQueryValueRemove = useCallback(() => {
+    setQueryValue('');
+  }, []);
+
   const handleFiltersClearAll = useCallback(() => {
     handleQueryValueRemove();
+    setBrandFilter('');
+    setProductTypeFilter('');
   }, [
     handleQueryValueRemove,
-  ])
-
-  const fetcher = useFetcher();
-  const handleMoreProducts = useCallback(() => {
-    const sortHandle = sortSelected[0].replace(/ /g, '-');
-
-    fetcher.load(`/api/shopify/product/get/${sortHandle}/${lastCursor}${queryValue ? `?search=${queryValue}` : ""}`);
-  },[
-    lastCursor
   ]);
+  
+  const fetcher = useFetcher();
+
+  const fetchProducts = useCallback((cursor?: string) => {
+    const sortHandle = sortSelected[0].replace(/ /g, '-');
+    const searchParams = new URLSearchParams();
+    if (queryValue) searchParams.append('search', queryValue);
+    if (brandFilter) searchParams.append('brand', brandFilter);
+    if (productTypeFilter) searchParams.append('product_type', productTypeFilter);
+    
+    const queryString = searchParams.toString();
+    const cursorPath = cursor ? `/${cursor}` : "";
+
+    fetcher.load(`/api/shopify/product/get/${sortHandle}${cursorPath}${queryString ? `?${queryString}` : ""}`);
+  }, [sortSelected, queryValue, brandFilter, productTypeFilter, fetcher]);
+
   useEffect(() => {
     if (fetcher.data) {
       const replyData = fetcher.data as Reply;
 
-      setMoreProducts(replyData.moreProducts ? replyData.moreProducts : false);
-      setLastCursor(replyData.lastCursor ? replyData.lastCursor : lastCursor);
-      setProducts(replyData.products ? replyData.products : []);
+      setMoreProducts(replyData.moreProducts ?? false);
+      setLastCursor(replyData.lastCursor ?? "");
+      setProducts(replyData.products ?? []);
     }
-  },[
-    fetcher.data
-  ]);
+  }, [fetcher.data]);
 
   useEffect(() => {
-    const sortHandle = sortSelected[0].replace(/ /g, '-');
-
-    fetcher.load(`/api/shopify/product/get/${sortHandle}/${lastCursor}${queryValue ? `?search=${queryValue}` : ""}`);
-  },[
-    sortSelected,
-    queryValue
-  ]);
+    setPage(0);
+    setLastCursors([]);
+    fetchProducts();
+  }, [sortSelected, queryValue, brandFilter, productTypeFilter]);
 
   const handleNext = useCallback(() => {
-    setPrevProducts([...prevProducts, products]);
-    handleMoreProducts();
-    setPage(page + 1);
-  }, []);
+    if (lastCursor) {
+      setLastCursors(prev => [...prev, lastCursor]);
+      setPage(prev => prev + 1);
+      fetchProducts(lastCursor);
+    }
+  }, [lastCursor, fetchProducts]);
 
   const handlePrev = useCallback(() => {
-    setProducts(prevProducts[page - 1])
-    setPage(page - 1);
-  }, []);
+    if (page > 0) {
+      const newPage = page - 1;
+      const newCursor = lastCursors[newPage - 1] ?? "";
+      setLastCursors(prev => prev.slice(0, newPage));
+      setPage(newPage);
+      fetchProducts(newCursor);
+    }
+  }, [page, lastCursors, fetchProducts]);
+
+  const filters = [
+    {
+      key: 'brand',
+      label: 'Brand',
+      filter: (
+        <TextField
+          label="Brand"
+          value={brandFilter}
+          onChange={handleBrandFilterChange}
+          labelHidden
+          autoComplete="off"
+        />
+      ),
+      shortcut: true,
+    },
+    {
+      key: 'productType',
+      label: 'Product Type',
+      filter: (
+        <TextField
+          label="Product Type"
+          value={productTypeFilter}
+          onChange={handleProductTypeFilterChange}
+          labelHidden
+          autoComplete="off"
+        />
+      ),
+      shortcut: true,
+    }
+  ];
 
   const rowMarkup = products.map(({imgUrl, sku, title, brand, product, d2cStatus, b2bStatus, id}: ProductPreview, index: number) => (
     <IndexTable.Row
@@ -167,6 +217,19 @@ export default function Index() {
     </IndexTable.Row>
   ));
 
+  const appliedFilters = [
+    ...(brandFilter ? [{
+      key: 'brand',
+      label: `Brand: ${brandFilter}`,
+      onRemove: () => setBrandFilter(''),
+    }] : []),
+    ...(productTypeFilter ? [{
+      key: 'productType',
+      label: `Product Type: ${productTypeFilter}`,
+      onRemove: () => setProductTypeFilter(''),
+    }] : [])
+  ];
+
   return (
     <Page 
       fullWidth
@@ -190,8 +253,8 @@ export default function Index() {
             tabs={[]}
             selected={selected}
             onSelect={setSelected}
-            filters={[]}
-            appliedFilters={[]}
+            filters={filters}
+            appliedFilters={appliedFilters}
             onClearAll={handleFiltersClearAll}
             mode={mode}
             setMode={setMode}

@@ -295,168 +295,154 @@ export async function loader({request}: LoaderFunctionArgs) {
 export default function Index() {
   const [currentChannel, setCurrentChannel] = useState(0);
   const [isChanged, setIsChanged] = useState(false);
+  const [deletedRuleIds, setDeletedRuleIds] = useState<string[]>([]);
+  const fetcher = useFetcher();
 
   const {channels, brandOptions, typeOptions, assortmentOptions, customizationOptions, occasionOptions } = useLoaderData<typeof loader>();
-  const [data, setData] = useState(channels);
-
+  const [data, setData] = useState(channels as Channel[]);
+  const [initialData, setInitialData] = useState(JSON.parse(JSON.stringify(channels)) as Channel[]);
+  
   useEffect(() => {
-    const hasChanged = !deepCompare(data, channels);
-    setIsChanged(hasChanged);
-  }, [data])
+    setData(channels);
+    setInitialData(JSON.parse(JSON.stringify(channels)));
+    setDeletedRuleIds([]);
+  }, [channels]);
+  
+  useEffect(() => {
+    const areChannelsEqual = JSON.stringify(data[currentChannel]) === JSON.stringify(initialData[currentChannel]);
+    setIsChanged(!areChannelsEqual);
+  }, [data, initialData, currentChannel]);
+
+  const handleSave = () => {
+    const currentRules = data[currentChannel].rules;
+    const initialRules = initialData[currentChannel].rules;
+
+    const changedRules = currentRules.filter(currentRule => {
+        const initialRule = initialRules.find(r => r.handle === currentRule.handle);
+        if (!initialRule) {
+            return true;
+        }
+        return (
+            currentRule.title !== initialRule.title ||
+            currentRule.type !== initialRule.type ||
+            currentRule.variant !== initialRule.variant ||
+            currentRule.brand !== initialRule.brand ||
+            currentRule.product !== initialRule.product ||
+            currentRule.occasion !== initialRule.occasion ||
+            currentRule.assortment !== initialRule.assortment ||
+            currentRule.customization !== initialRule.customization
+        );
+    });
+
+    const orderedRules = currentRules.map(rule => rule.id || rule.handle);
+
+    fetcher.submit(
+        {
+            deletedRules: JSON.stringify(deletedRuleIds),
+            changedRules: JSON.stringify(changedRules),
+            orderedRules: JSON.stringify(orderedRules),
+            channel: JSON.stringify(data[currentChannel])
+        }, 
+        {
+            method: "POST", 
+            action: "/api/shopify/channel/update"
+        }
+    );
+    setInitialData(JSON.parse(JSON.stringify(data)));
+    setDeletedRuleIds([]);
+  }
+
+  const handleCancel = () => {
+    setData(initialData);
+    setDeletedRuleIds([]);
+  }
+
+  const handleFieldChange = (ruleIndex: number, field: string, value?: string) => {
+    setData(prevData => {
+        const newData = [...prevData];
+        const newRules = [...newData[currentChannel].rules];
+        const newRule = {...newRules[ruleIndex]};
+        switch (field) {
+            case "TITLE":
+                newRule.title = value as string;
+                break;
+            case "EDIT":
+                newRule.edit = !newRule.edit;
+                break;
+            case "TYPE":
+                newRule.type = value === "true";
+                break;
+            case "VARIANT":
+                newRule.variant = value as string;
+                break;
+            case "BRAND":
+                newRule.brand = value as string;
+                break;
+            case "PRODUCT":
+                newRule.product = value as string;
+                break;
+            case "OCCASION":
+                newRule.occasion = value as string;
+                break;
+            case "ASSORTMENT":
+                newRule.assortment = value as string;
+                break;
+            case "CUSTOMIZATION":
+                newRule.customization = value as string;
+                break;
+        }
+        newRules[ruleIndex] = newRule;
+        newData[currentChannel].rules = newRules;
+        return newData;
+    });
+  };
 
   const handleAddRule = () => {
-    const newChannels = [...data];
-    const channelToUpdate = { ...newChannels[currentChannel] };
-    const newRule = {
-        title: "",
-        type: true,
-        variant: "All",
-        brand: "ALL",
-        product: "ALL",
-        occasion: "ALL",
-        assortment: "ALL",
-        customization: "ALL",
-        edit: true,
-        handle: `${channelToUpdate.handle}-${new Date().getTime()}`
-    }; 
-    channelToUpdate.rules = [...channelToUpdate.rules, newRule];
-    newChannels[currentChannel] = channelToUpdate;
-    setData(newChannels);
+    setData(prevData => {
+        const newData = [...prevData];
+        const newRules = [...newData[currentChannel].rules];
+        newRules.push({
+            title: "New Rule",
+            type: false,
+            variant: "ALL",
+            brand: "ALL",
+            product: "ALL",
+            occasion: "ALL",
+            assortment: "ALL",
+            customization: "ALL",
+            edit: true,
+            handle: crypto.randomUUID(),
+        });
+        newData[currentChannel].rules = newRules;
+        return newData;
+    });
   };
 
   const handleRemove = (ruleIndex: number) => {
-    const newChannels = [...data];
-    const channelToUpdate = { ...newChannels[currentChannel] };
-    channelToUpdate.rules = channelToUpdate.rules.filter((_, index) => index !== ruleIndex);
-    newChannels[currentChannel] = channelToUpdate;
-    setData(newChannels);
+    setData(prevData => {
+      const newData = [...prevData];
+      const newRules = [...newData[currentChannel].rules];
+      const [removedRule] = newRules.splice(ruleIndex, 1);
+      if (removedRule.id) {
+          setDeletedRuleIds(prev => [...prev, removedRule.id as string]);
+      }
+      newData[currentChannel].rules = newRules;
+      return newData;
+    });
   };
 
   const handleMove = (ruleIndex: number, direction: "UP" | "DOWN") => {
-    const newChannels = [...data];
-    const channelToUpdate = { ...newChannels[currentChannel] };
-    const newRules = [...channelToUpdate.rules];
-    const newIndex = direction === "UP" ? ruleIndex - 1 : ruleIndex + 1;
-    if (newIndex >= 0 && newIndex < newRules.length) {
-        [newRules[ruleIndex], newRules[newIndex]] = [newRules[newIndex], newRules[ruleIndex]];
-        channelToUpdate.rules = newRules;
-        newChannels[currentChannel] = channelToUpdate;
-        setData(newChannels);
-    }
-  };
-
-  const handleFieldChange = (ruleIndex: number, field: "TITLE" | "TYPE" | "VARIANT" | "BRAND" | "PRODUCT" | "OCCASION" | "ASSORTMENT" | "CUSTOMIZATION" | "EDIT", value?: string) => {
-    const newChannels = [...data];
-    const channelToUpdate = { ...newChannels[currentChannel] };
-    const newRules = [...channelToUpdate.rules];
-    const ruleToUpdate = { ...newRules[ruleIndex] };
-    switch (field) {
-        case "EDIT":
-            ruleToUpdate.edit = !ruleToUpdate.edit;
-            break;
-        case "CUSTOMIZATION":
-            if (value) {
-                ruleToUpdate.customization = value;
-            }
-            break;
-        case "ASSORTMENT":
-            if (value) {
-                ruleToUpdate.assortment = value;
-            }
-            break;
-        case "OCCASION":
-            if (value) {
-                ruleToUpdate.occasion = value;
-            }
-            break;
-        case "PRODUCT":
-            if (value) {
-                ruleToUpdate.product = value;
-            }
-            break;
-        case "BRAND":
-            if (value) {
-                ruleToUpdate.brand = value;
-            }
-            break;
-        case "VARIANT":
-            if (value) {
-                ruleToUpdate.variant = value;
-            }
-            break;
-        case "TYPE":
-            if (value) {
-                if (value === "true") {
-                    ruleToUpdate.type = true;
-                } else {
-                    ruleToUpdate.type = false;
-                }
-            }
-            break;
-        case "TITLE":
-            if (value) {
-                ruleToUpdate.title = value;
-            }
-            break;
-    }
-    newRules[ruleIndex] = ruleToUpdate;
-    channelToUpdate.rules = newRules;
-    newChannels[currentChannel] = channelToUpdate;
-    setData(newChannels);
-  };
-
-  const actionFetcher = useFetcher();
-  useEffect(() => {
-    if (actionFetcher.data !== undefined) {
-        window.location.reload();
-    }
-  }, [actionFetcher.data]);
-
-  const handleSave = () => {
-    for (const channel of channels) {
-        const newChangedRule: Rule[] = [];
-        const currentChannel = data.filter((newChannel: Channel) => channel.handle === newChannel.handle)[0];
-        const originalMap = new Map();
-        for (const rule of channel.rules) {
-            originalMap.set(rule.handle, rule);
-        }
-        for (let i = 0; i < currentChannel.rules.length; i++) {
-            const newRule = currentChannel.rules[i] as Rule;
-            const originalRule = originalMap.get(newRule.handle);
-            let ruleChanged = false;
-            originalMap.delete(newRule.handle);
-            if (!originalRule) {
-                newChangedRule.push(newRule);
-                continue;
-            }
-            if (i !== channel.rules.findIndex(r => r.handle === newRule.handle)) {
-                ruleChanged = true;
-            } else {
-                for (const key in newRule) {
-                    if (newRule[key as keyof Rule] !== originalRule[key]) {
-                        ruleChanged = true;
-                        break;
-                    }
-                }
-            }
-            if (ruleChanged) {
-                newChangedRule.push(newRule);
-            }
-        }
-        const deleteRules: string[] = [];
-        for (const rule of channel.rules) {
-            if (rule.id) {
-                deleteRules.push(rule.id);
-            }
-        }
-        const orderList: string[] = currentChannel.rules.map((rule: Rule) => rule.id ? rule.id : rule.handle);
-        const form = new FormData();
-        form.append("delete", JSON.stringify(deleteRules));
-        form.append("newChange", JSON.stringify(newChangedRule));
-        form.append("order", JSON.stringify(orderList));
-        form.append("channel", JSON.stringify(channel));
-        actionFetcher.submit(form, { method: 'POST', action: `/api/shopify/channel/update`});
-    }
+    setData(prevData => {
+      const newData = [...prevData];
+      const newRules = [...newData[currentChannel].rules];
+      if (direction === "UP" && ruleIndex > 0) {
+        [newRules[ruleIndex - 1], newRules[ruleIndex]] = [newRules[ruleIndex], newRules[ruleIndex - 1]];
+      } else if (direction === "DOWN" && ruleIndex < newRules.length - 1) {
+        [newRules[ruleIndex + 1], newRules[ruleIndex]] = [newRules[ruleIndex], newRules[ruleIndex + 1]];
+      }
+      newData[currentChannel].rules = newRules;
+      return newData;
+    });
   };
 
   return (
@@ -474,7 +460,7 @@ export default function Index() {
       }}
       secondaryActions={[{
         content: "Cancel",
-        onAction: () => setData(channels),
+        onAction: handleCancel,
         disabled: !isChanged
       }]}
     >
@@ -605,22 +591,4 @@ export default function Index() {
       </BlockStack>
     </Page>
   );
-}
-
-function deepCompare(arr1: Channel[], arr2: Channel[]): boolean {
-    for (let i = 0; i < arr1.length; i++) {
-        const channel1 = arr1[i];
-        const channel2 = arr2[i];
-        if (channel1.rules.length !== channel2.rules.length) {
-            return false;
-        }
-        for (let j = 0; j < channel1.rules.length; j++) {
-            const rule1 = channel1.rules[j];
-            const rule2 = channel2.rules[j];
-            if (rule1.title !== rule2.title || rule1.type !== rule2.type || rule1.variant !== rule2.variant || rule1.product !== rule2.product || rule1.occasion !== rule2.occasion || rule1.customization !== rule2.customization || rule1.brand !== rule2.brand || rule1.assortment !== rule2.assortment) {
-                return false;
-            }
-        }
-    }
-    return true;
 }

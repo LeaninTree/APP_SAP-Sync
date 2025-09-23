@@ -1,6 +1,6 @@
 import { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "app/shopify.server";
-import { Field } from "./api.shopify.metaobject.get.$id";
+import { Field } from "./app.definitions";
 
 export async function action({request, params}: ActionFunctionArgs) {
     const data = (await request.formData()).get("fields") as string;
@@ -25,7 +25,12 @@ export async function action({request, params}: ActionFunctionArgs) {
 
     const handleResult = await handleResponse.json();
 
-    const fields: Field[] = [...JSON.parse(data)];
+    const fields: Field[] = [...JSON.parse(data)].filter((field: Field) => field.value !== "NULL").map((field: Field) => {
+        if (field.value === null) {
+            return "";
+        }
+        return field.value;
+    });
     fields.push({
         key: "definition",
         value: "true",
@@ -33,17 +38,9 @@ export async function action({request, params}: ActionFunctionArgs) {
         type: "boolean"
     })
 
-    for (let i = 0; i < fields.length; i++) {
-        if (fields[i].value === "NULL") {
-            fields.splice(i, 1);
-        }
-    }
-
     function isValueBoolean(value: any): boolean {
         return typeof value === 'boolean';
     }
-
-    console.log(fields);
 
     const upsertResponse = await admin.graphql(
         `#graphql
@@ -88,8 +85,6 @@ export async function action({request, params}: ActionFunctionArgs) {
     );
 
     const upsertResult = await upsertResponse.json();
-
-    console.log(upsertResult.data.metaobjectUpsert.userErrors);
 
     if (upsertResult.data.metaobjectUpsert.userErrors.length > 0) {
         return new Response(JSON.stringify({status: "error"}), {

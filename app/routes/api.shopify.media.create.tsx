@@ -103,45 +103,4 @@ export async function action({request}: ActionFunctionArgs) {
         console.error("Upload failed:", error);
         return { success: false, url: null, id: null };
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    const data = (await request.formData()).get("file") as File;
-
-    const { admin } = await authenticate.admin(request);
-
-    console.log(data);
-
-    console.log("TEST", data?.name);
-
-    /*const response = await admin.graphql(
-        `
-        `,
-        {
-            variables:
-
-        }
-    );*/
-
-
 }

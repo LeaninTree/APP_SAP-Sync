@@ -24,6 +24,9 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
     const url = new URL(request.url);
     const searchTerm = url.searchParams.get("search");
+    const brandTerm = url.searchParams.get("brand");
+    const typeTerm = url.searchParams.get("product_type");
+    //TODO get other search params
 
     const splitSort = params.sort?.toUpperCase().split("-");
     const sortKey = splitSort ? splitSort[0] : "TITLE";

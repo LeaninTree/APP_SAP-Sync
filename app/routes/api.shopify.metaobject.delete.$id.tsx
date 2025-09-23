@@ -3,7 +3,6 @@ import { authenticate } from "app/shopify.server";
 
 export async function loader({request, params}: LoaderFunctionArgs) {
     const { admin } = await authenticate.admin(request);
-     console.log("Test2")
 
     const response = await admin.graphql(
         `#graphql

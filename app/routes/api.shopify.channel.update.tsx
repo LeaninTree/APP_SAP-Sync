@@ -5,19 +5,10 @@ import { Rule, Channel } from "./app.channels";
 export async function action({request}: ActionFunctionArgs) {
     const formData = await request.formData()
 
-    const deleteList: string[] = JSON.parse(formData.get("delete") as string);
-    const changeList: Rule[] = JSON.parse(formData.get("newChange") as string);
-    const orderList: string[] = JSON.parse(formData.get("order") as string);
+    const deleteList: string[] = JSON.parse(formData.get("deletedRules") as string);
+    const changeList: Rule[] = JSON.parse(formData.get("changedRules") as string);
+    const orderList: string[] = JSON.parse(formData.get("orderedRules") as string);
     const channel: Channel = JSON.parse(formData.get("channel") as string);
-
-    console.log("============================================================================================");
-    console.log("============================================================================================");
-    console.log(deleteList);
-    console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    console.log(changeList);
-    console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    console.log(orderList);
-    console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 
     const { admin } = await authenticate.admin(request);
 
@@ -141,16 +132,14 @@ export async function action({request}: ActionFunctionArgs) {
         }
     }
 
-    console.log(handleIDMap);
-    console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-
     const uploadedRuleList = orderList.map((ruleItem: string) => {
-        if (!ruleItem.startsWith("gid://shopify/Metaobject/") && handleIDMap.get(ruleItem)) {
+        if (handleIDMap.get(ruleItem)) {
             return handleIDMap.get(ruleItem);
         }
         return ruleItem;
-    }).filter((ruleItem: string) => !ruleItem.startsWith("gid://shopify/Metaobject/"));
-    console.log(uploadedRuleList);
+    }).filter((ruleItem: string) => ruleItem.startsWith("gid://shopify/Metaobject/"));
+
+    console.log(channel);
 
     const channelResponse = await admin.graphql(
         `#graphql
@@ -200,9 +189,6 @@ export async function action({request}: ActionFunctionArgs) {
             console.error(`[${channelResult.data.metaobjectUpsert.userErrors[i].field}] ${channelResult.data.metaobjectUpsert.userErrors[i].message}`);
         }
     }
-
-    console.log("============================================================================================");
-    console.log("============================================================================================");
 
     if (errors) {
         return new Response(JSON.stringify({status: "error"}), {
