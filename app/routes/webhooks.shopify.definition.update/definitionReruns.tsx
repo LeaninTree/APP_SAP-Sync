@@ -27,8 +27,8 @@ interface Variant {
             }[];
         }
     }
-    compareAtPrice: string | number;
-    price: string | number;
+    compareAtPrice: string;
+    price: string;
     barcode: string;
     metafields: {
         nodes: Metafield[];
@@ -442,8 +442,8 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
     });
 
     const newVariants = productResult.data.product.variants.nodes.map((variant: Variant) => {
-        let compare_at_price = variant.compareAtPrice;
-        let price = variant.price;
+        let compare_at_price = JSON.parse(variant.compareAtPrice).amount;
+        let price = JSON.parse(variant.price).amount;
         let newMetafields = variant.metafields.nodes.map((metafield: Metafield) => {
             if (metafield.key === "clearance") {
                 metafield.value = definitionResult.data.metaobject.clearance.value; 
