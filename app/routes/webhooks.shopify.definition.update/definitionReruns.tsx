@@ -451,8 +451,6 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
             return metafield;
         });
         if (variant.title.toUpperCase() === "D2C") {
-            console.log(definitionResult.data.metaobject.d2cComparePrice.value);
-            console.log(definitionResult.data.metaobject.d2cPrice.value)
             compare_at_price = JSON.parse(definitionResult.data.metaobject.d2cComparePrice.value).amount;
             price = JSON.parse(definitionResult.data.metaobject.d2cPrice.value).amount;
             newMetafields = newMetafields.map((metafield: Metafield) => {
@@ -462,8 +460,8 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
                 return metafield;
             });
         } else if (variant.title.toUpperCase() === "B2B") {
-            compare_at_price = definitionResult.data.metaobject.b2bComparePrice.value;
-            price = definitionResult.data.metaobject.b2bPrice.value;
+            compare_at_price = JSON.parse(definitionResult.data.metaobject.b2bComparePrice.value).amount;
+            price = JSON.parse(definitionResult.data.metaobject.b2bPrice.value).amount;
             newMetafields = newMetafields.map((metafield: Metafield) => {
                 if (metafield.key === "count") {
                     metafield.value = definitionResult.data.metaobject.b2bCount.value;
