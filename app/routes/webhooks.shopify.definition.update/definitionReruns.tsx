@@ -442,10 +442,8 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
     });
 
     const newVariants = productResult.data.product.variants.nodes.map((variant: Variant) => {
-        console.log(variant.compareAtPrice);
-        console.log(variant.price);
-        let compare_at_price = JSON.parse(variant.compareAtPrice).amount;
-        let price = JSON.parse(variant.price).amount;
+        let compare_at_price = variant.compareAtPrice;
+        let price = variant.price;
         let newMetafields = variant.metafields.nodes.map((metafield: Metafield) => {
             if (metafield.key === "clearance") {
                 metafield.value = definitionResult.data.metaobject.clearance.value; 
@@ -453,8 +451,10 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
             return metafield;
         });
         if (variant.title.toUpperCase() === "D2C") {
-            compare_at_price = definitionResult.data.metaobject.d2cComparePrice.value;
-            price = definitionResult.data.metaobject.d2cPrice.value;
+            console.log(definitionResult.data.metaobject.d2cComparePrice.value);
+            console.log(definitionResult.data.metaobject.d2cPrice.value)
+            compare_at_price = JSON.parse(definitionResult.data.metaobject.d2cComparePrice.value).amount;
+            price = JSON.parse(definitionResult.data.metaobject.d2cPrice.value).amount;
             newMetafields = newMetafields.map((metafield: Metafield) => {
                 if (metafield.key === "count") {
                     metafield.value = assortment;
