@@ -515,6 +515,9 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
 
     const result = await response.json();
 
+    console.log("TESTING1");
+    console.log(result.data);
+
     if (result.data.productSet.userErrors.length > 0) {
         const getShopMetafieldsResponse = await admin.graphql(
             `#graphql
@@ -563,6 +566,9 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
         );
 
         const metafieldUpdateResult = await metafieldUpdateResponse.json();
+
+        console.log("TESTING2");
+        console.log(metafieldUpdateResult.data);
 
         if (metafieldUpdateResult.data.metafieldsSet.userErrors.length > 0) {
             for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
