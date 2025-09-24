@@ -181,6 +181,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
         const productResult = await productResponse.json();
 
+        //TODO: Check for required data before going further - productType, SAPTitle, Occasion
+
         const media: Media[] = [];
         for (let i = 0; i < productResult.data.products.nodes[0].media.nodes.length; i++) {
             if ( productResult.data.products.nodes[0].media.nodes[i]) {

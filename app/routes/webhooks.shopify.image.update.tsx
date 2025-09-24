@@ -44,8 +44,28 @@ export async function action({ request }: ActionFunctionArgs) {
         if (queueResult.data.shop.imageErrors && queueResult.data.shop.imageErrors.value) {
             imageProblems = [...JSON.parse(queueResult.data.shop.imageErrors.value)];
         }
-        const categoryMetafield = payload.metafields.filter((metafield: any) => metafield.key === "category");
-        if (categoryMetafield.length > 0 && categoryMetafield[0].value !== null) {
+
+        const response = await admin.graphql(
+            `#graphql
+                query GetCategory($id: ID!) {
+                    product(id: $id) {
+                        category: metafield(namespace: "custom", key: "category") {
+                            value
+                        }
+                    }
+                }
+            `,
+            {
+                variables: {
+                    id: payload.admin_graphql_api_id
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        const categoryMetafield = result.data.product.category;
+        if ( categoryMetafield.value !== null) {
             const categoryResponse = await admin.graphql(
                 `#graphql
                     query CategoryMetaobject($id: ID!) {
@@ -58,7 +78,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 `,
                 {
                     variables: {
-                        id: categoryMetafield[0].value
+                        id: categoryMetafield.value
                     }
                 }
             );

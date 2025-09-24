@@ -37,9 +37,6 @@ api_version = "2025-10"
     "admin_graphql_api_id",
     "media.created_at",
     "mediaCount",
-    "metafields.namespace",
-    "metafields.key",
-    "metafields.value",
     "created_at"
   ]
 
