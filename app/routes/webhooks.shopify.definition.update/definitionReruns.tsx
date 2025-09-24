@@ -515,6 +515,9 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
 
     const result = await response.json();
 
+    console.log("TEST1");
+    console.log(result.data);
+
     if (result.data.productSet.userErrors.length > 0) {
         const getShopMetafieldsResponse = await admin.graphql(
             `#graphql
@@ -535,7 +538,7 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
         const getShopMetafieldsResult = await getShopMetafieldsResponse.json();
 
         const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
-        newITErrors.push(`[Metaobject Update] (${definitionId}) ${result.data.productUpdate.userErrors.field} - ${result.data.productUpdate.userErrorsmessage}`);
+        newITErrors.push(`[Metaobject Update] (${definitionId}) ${result.data.productSet.userErrors.field} - ${result.data.productSet.userErrors.message}`);
 
         const metafieldUpdateResponse = await admin.graphql(
             `#graphql
@@ -565,8 +568,8 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
         const metafieldUpdateResult = await metafieldUpdateResponse.json();
 
         if (metafieldUpdateResult.data.metafieldsSet.userErrors.length > 0) {
-            for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
-                console.log(`[Metaobject Update] (${definitionId}) ${metafieldUpdateResult.data.userErrors[i].field} - ${metafieldUpdateResult.data.userErrors[i].message}`);
+            for (let i = 0; i < metafieldUpdateResult.data.metafieldsSet.userErrors; i++) {
+                console.log(`[Metaobject Update] (${definitionId}) ${metafieldUpdateResult.data.metafieldsSet.userErrors[i].field} - ${metafieldUpdateResult.data.metafieldsSet.userErrors[i].message}`);
             }
         }
     }
