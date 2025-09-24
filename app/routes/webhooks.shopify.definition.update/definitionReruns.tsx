@@ -488,6 +488,8 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
         }
     });
 
+    console.log(newVariants);
+
     const response = await admin.graphql(
         `#graphql
             mutation UpdateProductVendor($input: ProductSetInput!, $identifier: ProductSetIdentifiers) {
