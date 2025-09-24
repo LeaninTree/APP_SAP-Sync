@@ -488,8 +488,6 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
         }
     });
 
-    console.log(newVariants);
-
     const response = await admin.graphql(
         `#graphql
             mutation UpdateProductVendor($input: ProductSetInput!, $identifier: ProductSetIdentifiers) {
@@ -516,6 +514,9 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
     );
 
     const result = await response.json();
+
+    console.log("TEST1");
+    console.log(result);
 
     if (result.data.productUpdate.userErrors.length > 0) {
         const getShopMetafieldsResponse = await admin.graphql(
@@ -565,6 +566,10 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
         );
 
         const metafieldUpdateResult = await metafieldUpdateResponse.json();
+
+        console.log("TEST2");
+        console.log(result);
+
 
         if (metafieldUpdateResult.data.userErrors.length > 0) {
             for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
