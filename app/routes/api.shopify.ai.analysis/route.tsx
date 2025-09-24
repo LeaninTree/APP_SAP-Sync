@@ -440,7 +440,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const metafieldUpdateResult = await metafieldUpdateResponse.json();
 
-    if (metafieldUpdateResult.data.userErrors.length > 0) {
+    if (metafieldUpdateResult.data.metafieldsSet.userErrors.length > 0) {
         for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
             console.log(`[${metafieldUpdateResult.data.userErrors[i].field}] ${metafieldUpdateResult.data.userErrors[i].message}`)
         }
