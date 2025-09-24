@@ -442,6 +442,8 @@ async function categoryDefinitionUpdate(admin: AdminApiContextWithoutRest, produ
     });
 
     const newVariants = productResult.data.product.variants.nodes.map((variant: Variant) => {
+        console.log(variant.compareAtPrice);
+        console.log(variant.price);
         let compare_at_price = JSON.parse(variant.compareAtPrice).amount;
         let price = JSON.parse(variant.price).amount;
         let newMetafields = variant.metafields.nodes.map((metafield: Metafield) => {
