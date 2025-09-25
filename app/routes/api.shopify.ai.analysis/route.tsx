@@ -27,7 +27,7 @@ interface UploadMedia {
 export async function action({ request }: ActionFunctionArgs) {
     const { admin, payload} = await authenticate.flow(request);
     console.log(payload);
-    const queue: string[] = JSON.parse(payload.queue);
+    /*const queue: string[] = JSON.parse(payload.queue);
     let toneList: string[] = [];
     const toneListResponse = await admin.graphql(
         `#graphql
@@ -447,7 +447,7 @@ export async function action({ request }: ActionFunctionArgs) {
         for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
             console.log(`[${metafieldUpdateResult.data.userErrors[i].field}] ${metafieldUpdateResult.data.userErrors[i].message}`)
         }
-    }
+    }*/
 
     return new Response("Ok", { status: 200 });
 }
