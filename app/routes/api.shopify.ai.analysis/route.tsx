@@ -204,6 +204,7 @@ export async function action({ request }: ActionFunctionArgs) {
         };
 
         const aiResponse = await runAIAnalysis(admin, product, toneList, genderedList, groupList);
+        console.log(aiResponse);
         if (JSON.parse(aiResponse).error) {
             ITErrors.push({
                         code: product.sku,
