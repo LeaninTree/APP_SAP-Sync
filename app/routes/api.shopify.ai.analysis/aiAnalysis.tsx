@@ -148,6 +148,8 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
 
     let recipient: AIRecipient = {};
     if (aiJson && aiJson.recipient && aiJson.recipient.gender && aiJson.recipient.kid != null && aiJson.recipient.group) {
+        console.log(aiJson);
+        console.log("HANDLE: ", `${aiJson.recipient.gender}-${aiJson.recipient.group}-${aiJson.recipient.kid ? "Kids" : ""}`)
         const getRecipientResponse = await admin.graphql(
             `#graphql
                 query getRecipientId($handle: String!) {
