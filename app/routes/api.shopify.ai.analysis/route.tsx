@@ -203,13 +203,7 @@ export async function action({ request }: ActionFunctionArgs) {
             media: media
         };
 
-        console.log("=====================================================================================================");
-        console.log("=====================================================================================================");
-        console.log(product);
-        console.log("=====================================================================================================");
-        console.log("=====================================================================================================");
-
-        /*const aiResponse = await runAIAnalysis(admin, product, toneList, genderedList, groupList);
+        const aiResponse = await runAIAnalysis(admin, product, toneList, genderedList, groupList);
         if (JSON.parse(aiResponse).error) {
             ITErrors.push({
                         code: product.sku,
@@ -217,7 +211,12 @@ export async function action({ request }: ActionFunctionArgs) {
                     });
         } else {
             const aiData = JSON.parse(aiResponse);
-            productStatus.push({
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+            console.log(aiData);
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+            /*productStatus.push({
                 code: product.sku,
                 message: "AI ANALYSIS | AI analysis has been completed."
             });
@@ -370,8 +369,8 @@ export async function action({ request }: ActionFunctionArgs) {
                         message: "PRODUCT UPDATE ERROR"
                     })
                 }
-            }
-        }*/
+            }*/
+        }
     }
 
     //Check backlog for product
