@@ -106,14 +106,7 @@ export async function action({ request }: ActionFunctionArgs) {
         }
     }
 
-    console.log("=====================================================================================================");
-    console.log("=====================================================================================================");
-    console.log(genderedList);
-    console.log(groupList);
-    console.log("=====================================================================================================");
-    console.log("=====================================================================================================");
-
-    /*const ITErrors: Error[] = [];
+    const ITErrors: Error[] = [];
     const productStatus: Error[] = [];
 
     for (let i = 0; i < queue.length; i++) {
@@ -188,7 +181,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
         const productResult = await productResponse.json();
 
-        const media: Media[] = [];
+        console.log("=====================================================================================================");
+        console.log("=====================================================================================================");
+        console.log(productResult);
+        console.log("=====================================================================================================");
+        console.log("=====================================================================================================");
+
+        /*const media: Media[] = [];
         for (let i = 0; i < productResult.data.products.nodes[0].media.nodes.length; i++) {
             if ( productResult.data.products.nodes[0].media.nodes[i]) {
                 media.push({
@@ -372,12 +371,12 @@ export async function action({ request }: ActionFunctionArgs) {
                     })
                 }
             }
-        }
+        }*/
     }
 
     //Check backlog for product
 
-    const getShopMetafieldsResponse = await admin.graphql(
+    /*const getShopMetafieldsResponse = await admin.graphql(
         `#graphql
             query ShopMetafields {
                 shop {
