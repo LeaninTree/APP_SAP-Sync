@@ -103,6 +103,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
             value
             updatedAt
           }
+          counter: metafield(namespace: "custom", key: "daily_ai_counter") {
+            value
+          }
+          backlog: metafield(namespace: "custom", key: "ai_backlog") {
+            value
+            updatedAt
+          }
         }
       }
     `,
@@ -113,13 +120,29 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const aiResult = await aiResponse.json();
 
-  let ai: {queue: string[]; updatedAt: Date | null;} ={
+  let ai: {
+    queue: string[]; 
+    updatedAt: Date | null; 
+    counter: number | null;
+    backlog: string[];
+    backlogUpdatedAt: Date | null;
+  } ={
     queue: [],
-    updatedAt: null
+    updatedAt: null,
+    counter: null,
+    backlog: [],
+    backlogUpdatedAt: null,
   };
   if (aiResult.data.shop.queue) {
     ai.queue = JSON.parse(aiResult.data.shop.queue.value);
     ai.updatedAt = new Date(aiResult.data.shop.queue.updatedAt);
+  }
+  if (aiResult.data.shop.counter) {
+    ai.counter = Number(aiResult.data.shop.counter.value);
+  }
+  if (aiResult.data.shop.backlog) {
+    ai.backlog = JSON.parse(aiResult.data.shop.backlog.value);
+    ai.backlogUpdatedAt = new Date(aiResult.data.shop.backlog.updatedAt);
   }
 
   return {productFeed: productFeed, definitions: definitions, aiQueue: ai}
@@ -218,18 +241,26 @@ export default function Index() {
                 <InlineStack gap="300" key="2-2-1">
                   <Text variant="headingLg" as="h3" key="2-2-1-1">AI Analysis Status</Text>
                   <Badge
-                    tone={aiQueue.queue.length === 0 ? "success" : "attention"}
-                    progress={aiQueue.queue.length === 0 ? "complete" : "partiallyComplete"}
+                    tone={aiQueue.queue.length === 0 ? "success" : aiQueue.counter && aiQueue.counter < 245 ? "attention" : "critical"}
+                    progress={aiQueue.queue.length === 0 ? "complete" : aiQueue.counter && aiQueue.counter < 245 ? "partiallyComplete" : "incomplete"}
                     key="2-2-1-2"
                   >
-                    {aiQueue.queue.length === 0 ? "Standby" : "In Progress"}
+                    {aiQueue.queue.length === 0 ? "Standby" : aiQueue.counter && aiQueue.counter < 245 ? "In Progress" : "API Limit Hit"}
                   </Badge>
                 </InlineStack>
                 {aiQueue.queue.length > 0 ?
                   <>
                     <Text variant="bodyLg" as="p" key="2-2-2"><b>Products pending processing:</b> {aiQueue.queue.length}</Text>
                     {aiQueue.updatedAt ? 
-                      <Text variant="bodyLg" as="p" key="2-2-3"><b>Most Recent Product Added to Queue:</b> {aiQueue.updatedAt.toLocaleString()}</Text>
+                      <Text variant="bodyLg" as="p" key="2-2-3"><b>Most Recent Queue Update:</b> {aiQueue.updatedAt.toLocaleString()}</Text>
+                    : null}
+                  </>
+                : null}
+                {aiQueue.backlog.length > 0 ?
+                  <>
+                    <Text variant="bodyLg" as="p" key="2-2-2"><b>Backlogged Products pending processing:</b> {aiQueue.backlog.length}</Text>
+                    {aiQueue.backlogUpdatedAt ? 
+                      <Text variant="bodyLg" as="p" key="2-2-3"><b>Most Recent Backlog Update:</b> {aiQueue.backlogUpdatedAt.toLocaleString()}</Text>
                     : null}
                   </>
                 : null}

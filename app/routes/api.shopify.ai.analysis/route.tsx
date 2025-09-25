@@ -26,6 +26,7 @@ interface UploadMedia {
 
 export async function action({ request }: ActionFunctionArgs) {
     const { admin, payload} = await authenticate.flow(request);
+    console.log(payload);
     const queue: string[] = JSON.parse(payload.queue);
     let toneList: string[] = [];
     const toneListResponse = await admin.graphql(
@@ -180,8 +181,6 @@ export async function action({ request }: ActionFunctionArgs) {
         );
 
         const productResult = await productResponse.json();
-
-        //TODO: Check for required data before going further - productType, SAPTitle, Occasion
 
         const media: Media[] = [];
         for (let i = 0; i < productResult.data.products.nodes[0].media.nodes.length; i++) {
@@ -369,6 +368,8 @@ export async function action({ request }: ActionFunctionArgs) {
             }
         }
     }
+
+    //Check backlog for product
 
     const getShopMetafieldsResponse = await admin.graphql(
         `#graphql
