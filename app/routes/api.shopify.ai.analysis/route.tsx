@@ -182,13 +182,13 @@ export async function action({ request }: ActionFunctionArgs) {
         const productResult = await productResponse.json();
 
         const media: Media[] = [];
-        for (let i = 0; i < productResult.data.products.nodes[0].media.nodes.length; i++) {
-            if ( productResult.data.products.nodes[0].media.nodes[i]) {
+        for (let i = 0; i < productResult.data.product.media.nodes.length; i++) {
+            if ( productResult.data.product.media.nodes[i]) {
                 media.push({
-                    id: productResult.data.products.nodes[0].media.nodes[i].id,
-                    url: productResult.data.products.nodes[0].media.nodes[i].image.url,
-                    mimeType: productResult.data.products.nodes[0].media.nodes[i].mimeType,
-                    alt: productResult.data.products.nodes[0].media.nodes[i].alt
+                    id: productResult.data.product.media.nodes[i].id,
+                    url: productResult.data.product.media.nodes[i].image.url,
+                    mimeType: productResult.data.product.media.nodes[i].mimeType,
+                    alt: productResult.data.product.media.nodes[i].alt
                 });
 
             }
