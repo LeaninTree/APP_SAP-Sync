@@ -26,8 +26,7 @@ interface UploadMedia {
 
 export async function action({ request }: ActionFunctionArgs) {
     const { admin, payload} = await authenticate.flow(request);
-    console.log(payload.properties.queue);
-    /*const queue: string[] = JSON.parse(payload.properties.queue);
+    const queue: string[] = JSON.parse(payload.properties.queue);
     let toneList: string[] = [];
     const toneListResponse = await admin.graphql(
         `#graphql
@@ -55,7 +54,15 @@ export async function action({ request }: ActionFunctionArgs) {
         }
     }
 
-    const genderedList: string[] = [];
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+    console.log(queue);
+    console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    console.log(toneList);
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+
+    /*const genderedList: string[] = [];
     const groupList: string[] = [];
     const recipientListResponse = await admin.graphql(
         `#graphql
