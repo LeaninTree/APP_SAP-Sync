@@ -148,8 +148,6 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
 
     let recipient: AIRecipient = {};
     if (aiJson && aiJson.recipient && aiJson.recipient.gender && aiJson.recipient.kid != null && aiJson.recipient.group) {
-        console.log(aiJson);
-        console.log("HANDLE: ", `${aiJson.recipient.gender}-${aiJson.recipient.group}-${aiJson.recipient.kid ? "Kids" : ""}`)
         const getRecipientResponse = await admin.graphql(
             `#graphql
                 query getRecipientId($handle: String!) {
@@ -161,7 +159,7 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
             `,
             {
                 variables: {
-                    handle: `${aiJson.recipient.gender}-${aiJson.recipient.group}-${aiJson.recipient.kid ? "Kids" : ""}`
+                    handle: `${aiJson.recipient.gender.replace(" ", "")}-${aiJson.recipient.group.replace(" ", "")}${aiJson.recipient.kid ? "-Kids" : ""}`
                 }
             }
         );
@@ -191,7 +189,7 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
                     variables: {
                         metaobject: {
                             type: "recipient",
-                            handle: `${aiJson.recipient.gender}-${aiJson.recipient.group}-${aiJson.recipient.kid ? "Kids" : ""}`,
+                            handle: `${aiJson.recipient.gender.replace(" ", "")}-${aiJson.recipient.group.replace(" ", "")}${aiJson.recipient.kid ? "-Kids" : ""}`,
                             fields: [
                                 {
                                     key: "name",
