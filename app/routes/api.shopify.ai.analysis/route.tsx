@@ -26,8 +26,8 @@ interface UploadMedia {
 
 export async function action({ request }: ActionFunctionArgs) {
     const { admin, payload} = await authenticate.flow(request);
-    console.log(payload);
-    /*const queue: string[] = JSON.parse(payload.queue);
+    console.log(payload.properties.queue);
+    /*const queue: string[] = JSON.parse(payload.properties.queue);
     let toneList: string[] = [];
     const toneListResponse = await admin.graphql(
         `#graphql
