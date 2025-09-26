@@ -260,15 +260,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 tags = tags.slice(0, 249).concat(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`);
             }
 
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-            console.log(tags);
-            console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            console.log(aiJsonWBannedTags);
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-
-            /*const productMetafields: Metafield[] = [
+            const productMetafields: Metafield[] = [
                 {
                     namespace: "custom",
                     key: "tone",
@@ -336,7 +328,26 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
             }
 
-            const updateProductResponse = await admin.graphql(
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+            console.log("PRODUCT: ", {
+                            id: product.id,
+                            title: !shopifyAiData || productResult.data.product.title === shopifyAiData.title ? tempTitle : productResult.data.product.title,
+                            descriptionHtml: !shopifyAiData || productResult.data.product.description === shopifyAiData.description ? shopifyAiData.description : productResult.data.product.description,
+                            seo: {
+                                title: !shopifyAiData || productResult.data.product.title === shopifyAiData.title ? tempTitle : productResult.data.product.title,
+                                description: !shopifyAiData || productResult.data.product.seo.description === shopifyAiData.metaDescription ? shopifyAiData.metaDescription : productResult.data.product.seo.description
+                            },
+                            status: 'ACTIVE',
+                            tags: tags,
+                            metafields: productMetafields
+                        });
+            console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            console.log("MEDIA: ", mediaDefinition);
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+
+            /*const updateProductResponse = await admin.graphql(
                 `#graphql
                     mutation UpdateProduct($product: ProductUpdateInput!, $media: [CreateMediaInput!]) {
                         productUpdate(product: $product, media: $media) {
