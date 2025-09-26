@@ -466,16 +466,16 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log("=====================================================================================================");
     console.log("=====================================================================================================");
 
-    const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
+    const newITErrors = getShopMetafieldsResult.data.shop.itErrors && getShopMetafieldsResult.data.shop.itErrors.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)] : [];
     newITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
 
-    const newProductStatus = [...JSON.parse(getShopMetafieldsResult.data.shop.productStatus.value)];
+    const newProductStatus = getShopMetafieldsResult.data.shop.productStatus && getShopMetafieldsResult.data.shop.productStatus.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.productStatus.value)] : [];
     newProductStatus.concat(productStatus.map(error => `[${error.code}] ${error.message}`));
 
-    const tempQueue = [...JSON.parse(getShopMetafieldsResult.data.shop.oldQueue.value)];
+    const tempQueue = getShopMetafieldsResult.data.shop.oldQueue && getShopMetafieldsResult.data.shop.oldQueue.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.oldQueue.value)] : [];
     const newQueue = tempQueue.filter(value => !queue.includes(value));
 
-    const tempBacklog = [...JSON.parse(getShopMetafieldsResult.data.shop.oldBacklog.value)];
+    const tempBacklog = getShopMetafieldsResult.data.shop.oldBacklog && getShopMetafieldsResult.data.shop.oldBacklog.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.oldBacklog.value)] : [];
     const newBacklog = tempBacklog.filter(value => !queue.includes(value));
 
     console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
