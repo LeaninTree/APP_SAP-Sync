@@ -393,6 +393,22 @@ export async function action({ request }: ActionFunctionArgs) {
 
             console.log("=====================================================================================================");
             console.log("=====================================================================================================");
+            console.log({
+                product: {
+                            id: product.id,
+                            title: uploadTitle,
+                            descriptionHtml: uploadDescription,
+                            seo: {
+                                title: uploadTitle,
+                                description: uploadMetaDescription
+                            },
+                            status: 'ACTIVE',
+                            tags: tags,
+                            metafields: productMetafields
+                        },
+                        media: mediaDefinition
+            })
+            console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
             console.log(updateProductResult);
             console.log("=====================================================================================================");
             console.log("=====================================================================================================");
