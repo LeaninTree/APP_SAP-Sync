@@ -257,15 +257,6 @@ export async function action({ request }: ActionFunctionArgs) {
                 tags = tags.slice(0, 249).concat(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`);
             }
 
-            console.log("TEST3");
-            console.log(aiData && aiData.recipient && aiData.recipient.id ? "PASS" : "FAIL");
-            console.log("TESTING1");
-            console.log(aiData.recipient.id);
-            console.log("TESTING2");
-            console.log(shopifyAiData && shopifyAiData.recipient && shopifyAiData.recipient.id ? "PASS" : "FAIL");
-            console.log("TESTING3");
-            console.log(shopifyAiData.recipient.id);
-            console.log("TESTING4");
             const productMetafields: Metafield[] = [
                 {
                     namespace: "custom",
@@ -303,8 +294,6 @@ export async function action({ request }: ActionFunctionArgs) {
                     value: JSON.stringify(aiJsonWBannedTags)
                 }
             ];
-
-            console.log("TEST4");
 
             const mediaDefinition: UploadMedia[] = [];
             if (aiData && aiData.altText.length > 0) {
