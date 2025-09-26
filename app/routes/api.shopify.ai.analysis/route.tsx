@@ -383,13 +383,53 @@ export async function action({ request }: ActionFunctionArgs) {
                             status: 'ACTIVE',
                             tags: tags,
                             metafields: productMetafields
-                        },
-                        media: mediaDefinition
+                        }
                     }
                 }
             );
 
             const updateProductResult = await updateProductResponse.json();
+            
+            if (updateProductResult.data.productUpdate.userErrors.length > 0) {
+                for (let i = 0; i < updateProductResult.data.productUpdate.userErrors.length; i++) {
+                    ITErrors.push({
+                        code: product.sku,
+                        message: "AI ANALYSIS - PRODUCT UPDATE ERROR"
+                    });
+                }
+            }
+
+            const updateMediaResponse = await admin.graphql(
+                `#graphql
+                    mutation UpdateMedia($files: [FileUpdateInput!]!) {
+                        fileUpdate(files: $files) {
+                            files {
+                                id
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                `,
+                {
+                    variables: {
+                        files: mediaDefinition
+                    }
+                }
+            );
+
+            const updateMediaResult = await updateMediaResponse.json();
+
+            if (updateMediaResult.data.fileUpdate.userErrors.length > 0) {
+                for (let i = 0; i < updateMediaResult.data.fileUpdate.userErrors.length; i++) {
+                    ITErrors.push({
+                        code: product.sku,
+                        message: "AI ANALYSIS - MEDIA UPDATE ERROR"
+                    });
+                }
+            }
 
             console.log("=====================================================================================================");
             console.log("=====================================================================================================");
@@ -405,22 +445,14 @@ export async function action({ request }: ActionFunctionArgs) {
                             status: 'ACTIVE',
                             tags: tags,
                             metafields: productMetafields
-                        },
-                        media: mediaDefinition
+                        }
             })
             console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
             console.log(updateProductResult);
+            console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            console.log(updateMediaResult);
             console.log("=====================================================================================================");
             console.log("=====================================================================================================");
-            
-            if (updateProductResult.data.productUpdate.userErrors.length > 0) {
-                for (let i = 0; i < updateProductResult.data.productUpdate.userErrors.length; i++) {
-                    ITErrors.push({
-                        code: product.sku,
-                        message: "AI ANALYSIS - PRODUCT UPDATE ERROR"
-                    })
-                }
-            }
         }
     }
 
