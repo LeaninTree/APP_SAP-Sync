@@ -300,11 +300,8 @@ export async function action({ request }: ActionFunctionArgs) {
             console.log(aiData.altText.length)
             if (aiData && aiData.altText.length > 0) {
                 console.log("TEST1")
-                console.log(productResult.data.product.media.length)
-                console.log(productResult.data.product.media)
-                for (let i = 0; i < productResult.data.product.media.length; i++) {
-                    console.log("TEST2")
-                    const segments = productResult.data.product.media[i].url.split('/');
+                for (let i = 0; i < productResult.data.product.media.nodes.length; i++) {
+                    const segments = productResult.data.product.media.nodes[i].url.split('/');
                     let name = segments[segments.length - 1];
                     const paramsIndex = name.indexOf("?");
                     if (paramsIndex !== -1) {
@@ -317,15 +314,15 @@ export async function action({ request }: ActionFunctionArgs) {
                             if (shopifyAiData) {
                                 for (let k = 0; k < shopifyAiData.altText.length; k++) {
                                     if (name === shopifyAiData.altText[k].name) {
-                                        if (shopifyAiData.altText[k].text === productResult.data.product.media[i].alt) {
+                                        if (shopifyAiData.altText[k].text === productResult.data.product.media.nodes[i].alt) {
                                             mediaDefinition.push({
-                                                id: productResult.data.product.media[i].id,
+                                                id: productResult.data.product.media.nodes[i].id,
                                                 alt: aiData.altText[j].text
                                             });
                                         } else {
                                             mediaDefinition.push({
-                                                id: productResult.data.product.media[i].id,
-                                                alt: productResult.data.product.media[i].alt
+                                                id: productResult.data.product.media.nodes[i].id,
+                                                alt: productResult.data.product.media.nodes[i].alt
                                             });
                                         }
                                         break;
@@ -333,7 +330,7 @@ export async function action({ request }: ActionFunctionArgs) {
                                 }
                             } else {
                                 mediaDefinition.push({
-                                    id: productResult.data.product.media[i].id,
+                                    id: productResult.data.product.media.nodes[i].id,
                                     alt: aiData.altText[j].text
                                 });
                             }
