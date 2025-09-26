@@ -263,32 +263,32 @@ export async function action({ request }: ActionFunctionArgs) {
                 {
                     namespace: "custom",
                     key: "tone",
-                    value: shopifyAiData && tempTone === shopifyAiData.tone ? aiData.tone : tempTone
+                    value: shopifyAiData ? tempTone === shopifyAiData.tone ? aiData : tempTone : aiData.tone
                 },
                 {
                     namespace: "custom",
                     key: "recipient",
-                    value: shopifyAiData && tempRecipient === shopifyAiData.recipient ? aiData.recipeint : tempRecipient
+                    value: shopifyAiData ? tempRecipient === shopifyAiData.recipient ? aiData.recipeint : tempRecipient : aiData.recipeint
                 },
                 {
                     namespace: "custom",
                     key: "foulLanguage",
-                    value: shopifyAiData && tempLanguage === shopifyAiData.foulLanguageLevel ? aiData.foulLanguageLevel.toString() : tempLanguage.toString()
+                    value: shopifyAiData ? tempLanguage === shopifyAiData.foulLanguageLevel ? aiData.foulLanguageLevel.toString() : tempLanguage.toString() : aiData.foulLanguageLevel.toString()
                 },
                 {
                     namespace: "custom",
                     key: "sexualLevel",
-                    value: shopifyAiData && tempSexual === shopifyAiData.sexualLevel ? aiData.sexualLevel.toString() : tempSexual.toString()
+                    value: shopifyAiData ? tempSexual === shopifyAiData.sexualLevel ? aiData.sexualLevel.toString() : tempSexual.toString() : aiData.sexualLevel.toString()
                 },
                 {
                     namespace: "custom",
                     key: "politicalLevel",
-                    value: shopifyAiData && tempPolitical === shopifyAiData.politicalLevel ? shopifyAiData.politicalLevel.toString() : tempPolitical.toString()
+                    value: shopifyAiData ? tempPolitical === shopifyAiData.politicalLevel ? aiData.politicalLevel.toString() : tempPolitical.toString() : aiData.politicalLevel.toString()
                 },
                 {
                     namespace: "custom",
                     key: "nudityLevel",
-                    value: shopifyAiData && tempNudity === shopifyAiData.nudityLevel ? shopifyAiData.nudityLevel.toString() : tempNudity.toString()
+                    value: shopifyAiData ? tempNudity === shopifyAiData.nudityLevel ? aiData.nudityLevel.toString() : tempNudity.toString() : aiData.nudityLevel.toString()
                 },
                 {
                     namespace: "custom",
@@ -423,6 +423,9 @@ export async function action({ request }: ActionFunctionArgs) {
                     oldQueue: metafield(namespace: "custom", key: "ai_queue") {
                         value
                     }
+                    oldBacklog: metafield(namespace: "custom", key: "ai_backlog") {
+                        value
+                    }
                 }
             }
         `,
@@ -441,6 +444,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const tempQueue = [...JSON.parse(getShopMetafieldsResult.data.shop.oldQueue.value)];
     const newQueue = tempQueue.filter(value => !queue.includes(value));
+
+    const tempBacklog = [...JSON.parse(getShopMetafieldsResult.data.shop.oldBacklog.value)];
+    const newBacklog = tempBacklog.filter(value => !queue.includes(value));
 
     const metafieldUpdateResponse = await admin.graphql(
         `#graphql
@@ -473,6 +479,12 @@ export async function action({ request }: ActionFunctionArgs) {
                         namespace: "custom",
                         key: "ai_queue",
                         value: JSON.stringify(newQueue)
+                    },
+                    {
+                        ownerId: getShopMetafieldsResult.data.shop.id,
+                        namespace: "custom",
+                        key: "ai_backlog",
+                        value: JSON.stringify(newBacklog)
                     }
                 ]
             }
