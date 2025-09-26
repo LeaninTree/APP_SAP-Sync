@@ -460,12 +460,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const getShopMetafieldsResult = await getShopMetafieldsResponse.json();
 
-    console.log("=====================================================================================================");
-    console.log("=====================================================================================================");
-    console.log(getShopMetafieldsResult.data);
-    console.log("=====================================================================================================");
-    console.log("=====================================================================================================");
-
     const newITErrors = getShopMetafieldsResult.data.shop.itErrors && getShopMetafieldsResult.data.shop.itErrors.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)] : [];
     newITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
 
@@ -478,15 +472,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const tempBacklog = getShopMetafieldsResult.data.shop.oldBacklog && getShopMetafieldsResult.data.shop.oldBacklog.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.oldBacklog.value)] : [];
     const newBacklog = tempBacklog.filter(value => !queue.includes(value));
 
-    console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    console.log("IT ERRORS: ", newITErrors);
-    console.log("STATUS: ", newProductStatus);
-    console.log("AI QUEUE: ", newQueue);
-    console.log("AI BACKLOG: ", newBacklog);
-    console.log("=====================================================================================================");
-    console.log("=====================================================================================================");
-
-    /*const metafieldUpdateResponse = await admin.graphql(
+    const metafieldUpdateResponse = await admin.graphql(
         `#graphql
             mutation MetafieldUpdates($metafields: [MetafieldsSetInput!]!) {
                 metafieldsSet(metafields: $metafields) {
@@ -535,7 +521,13 @@ export async function action({ request }: ActionFunctionArgs) {
         for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
             console.log(`[${metafieldUpdateResult.data.userErrors[i].field}] ${metafieldUpdateResult.data.userErrors[i].message}`)
         }
-    }*/
+    }
+
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+    console.log(metafieldUpdateResult);
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
 
     return new Response("Ok", { status: 200 });
 }
