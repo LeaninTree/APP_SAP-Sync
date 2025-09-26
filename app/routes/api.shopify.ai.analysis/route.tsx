@@ -218,12 +218,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
             const shopifyAiData = productResult.data.product.aiData && productResult.data.product.aiData.value ? JSON.parse(productResult.data.product.aiData.value) : null;
 
+            console.log("TEST1");
             const tempTone: string = productResult.data.product.tone ? productResult.data.product.tone.value : toneList[0];
             const tempLanguage: number = productResult.data.product.foulLanguage ? productResult.data.product.foulLanguage.value : 1;
             const tempSexual: number = productResult.data.product.sexualLevel ? productResult.data.product.sexualLevel.value : 1;
             const tempPolitical: number = productResult.data.product.politicalLevel ? productResult.data.product.politicalLevel.value : 1;
             const tempNudity: number = productResult.data.product.nudityLevel ? productResult.data.product.nudityLevel.value : 1;
             const tempRecipient: string = productResult.data.product.recipient ? productResult.data.product.recipient.value : recipientListResult.data.metaobjectDefinitionByType.metaobjects.nodes[0].id;
+            console.log("TEST2");
 
             let tags: string[] = [];
             let aiJsonWBannedTags = aiData;
@@ -257,6 +259,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 tags = tags.slice(0, 249).concat(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`);
             }
 
+             console.log("TEST3");
             const productMetafields: Metafield[] = [
                 {
                     namespace: "custom",
@@ -294,6 +297,8 @@ export async function action({ request }: ActionFunctionArgs) {
                     value: JSON.stringify(aiJsonWBannedTags)
                 }
             ];
+
+            console.log("TEST4");
 
             const mediaDefinition: UploadMedia[] = [];
             if (aiData && aiData.altText.length > 0) {
