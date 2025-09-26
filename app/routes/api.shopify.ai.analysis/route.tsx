@@ -296,6 +296,7 @@ export async function action({ request }: ActionFunctionArgs) {
             ];
 
             const mediaDefinition: UploadMedia[] = [];
+            console.log("ALT-TEXTS: ", aiData.altText);
             if (aiData && aiData.altText.length > 0) {
                 for (let i = 0; i < productResult.data.product.media.length; i++) {
                     const segments = productResult.data.product.media[i].url.split('/');
@@ -304,8 +305,10 @@ export async function action({ request }: ActionFunctionArgs) {
                     if (paramsIndex !== -1) {
                         name = name.substring(0, paramsIndex);
                     }
+                    console.log("MEDIA NAME:", name);
                     for (let j = 0; j < aiData.altText.length; j++) {
                         if (name === aiData.altText[j].name) {
+                            console.log("NAME MATCH")
                             if (shopifyAiData) {
                                 for (let k = 0; k < shopifyAiData.altText.length; k++) {
                                     if (name === shopifyAiData.altText[k].name) {
@@ -314,10 +317,20 @@ export async function action({ request }: ActionFunctionArgs) {
                                                 id: productResult.data.product.media[i].id,
                                                 alt: aiData.altText[j].text
                                             });
+                                        } else {
+                                            mediaDefinition.push({
+                                                id: productResult.data.product.media[i].id,
+                                                alt: productResult.data.product.media[i].alt
+                                            });
                                         }
                                         break;
                                     }
                                 }
+                            } else {
+                                mediaDefinition.push({
+                                    id: productResult.data.product.media[i].id,
+                                    alt: aiData.altText[j].text
+                                });
                             }
                             break;
                         }
@@ -404,7 +417,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 for (let i = 0; i < updateProductResult.data.productUpdate.userErrors.length; i++) {
                     ITErrors.push({
                         code: product.sku,
-                        message: "PRODUCT UPDATE ERROR"
+                        message: "AI ANALYSIS - PRODUCT UPDATE ERROR"
                     })
                 }
             }*/
