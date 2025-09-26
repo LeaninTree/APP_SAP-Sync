@@ -259,7 +259,15 @@ export async function action({ request }: ActionFunctionArgs) {
                 tags = tags.slice(0, 249).concat(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`);
             }
 
-             console.log("TEST3");
+            console.log("TEST3");
+            console.log(aiData && aiData.recipeint && aiData.recipeint.id ? "PASS" : "FAIL");
+            console.log("TESTING1");
+            console.log(aiData.recipeint.id);
+            console.log("TESTING2");
+            console.log(shopifyAiData && shopifyAiData.recipeint && shopifyAiData.recipeint.id ? "PASS" : "FAIL");
+            console.log("TESTING3");
+            console.log(shopifyAiData.recipeint.id);
+            console.log("TESTING4");
             const productMetafields: Metafield[] = [
                 {
                     namespace: "custom",
