@@ -218,14 +218,12 @@ export async function action({ request }: ActionFunctionArgs) {
 
             const shopifyAiData = productResult.data.product.aiData && productResult.data.product.aiData.value ? JSON.parse(productResult.data.product.aiData.value) : null;
 
-            console.log("TEST1");
             const tempTone: string = productResult.data.product.tone ? productResult.data.product.tone.value : toneList[0];
             const tempLanguage: number = productResult.data.product.foulLanguage ? productResult.data.product.foulLanguage.value : 1;
             const tempSexual: number = productResult.data.product.sexualLevel ? productResult.data.product.sexualLevel.value : 1;
             const tempPolitical: number = productResult.data.product.politicalLevel ? productResult.data.product.politicalLevel.value : 1;
             const tempNudity: number = productResult.data.product.nudityLevel ? productResult.data.product.nudityLevel.value : 1;
             const tempRecipient: string = productResult.data.product.recipient ? productResult.data.product.recipient.value : recipientListResult.data.metaobjectDefinitionByType.metaobjects.nodes[0].id;
-            console.log("TEST2");
 
             let tags: string[] = [];
             let aiJsonWBannedTags = aiData;
@@ -260,13 +258,13 @@ export async function action({ request }: ActionFunctionArgs) {
             }
 
             console.log("TEST3");
-            console.log(aiData && aiData.recipeint && aiData.recipeint.id ? "PASS" : "FAIL");
+            console.log(aiData && aiData.recipient && aiData.recipient.id ? "PASS" : "FAIL");
             console.log("TESTING1");
-            console.log(aiData.recipeint.id);
+            console.log(aiData.recipient.id);
             console.log("TESTING2");
-            console.log(shopifyAiData && shopifyAiData.recipeint && shopifyAiData.recipeint.id ? "PASS" : "FAIL");
+            console.log(shopifyAiData && shopifyAiData.recipient && shopifyAiData.recipient.id ? "PASS" : "FAIL");
             console.log("TESTING3");
-            console.log(shopifyAiData.recipeint.id);
+            console.log(shopifyAiData.recipient.id);
             console.log("TESTING4");
             const productMetafields: Metafield[] = [
                 {
@@ -277,7 +275,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 {
                     namespace: "custom",
                     key: "recipient",
-                    value: shopifyAiData && shopifyAiData.recipient && shopifyAiData.recipient.id ? tempRecipient === shopifyAiData.recipient.id && aiData && aiData.recipeint && aiData.recipeint.id ? aiData.recipeint.id : tempRecipient : aiData.recipeint.id
+                    value: shopifyAiData && shopifyAiData.recipient && shopifyAiData.recipient.id ? tempRecipient === shopifyAiData.recipient.id && aiData && aiData.recipient && aiData.recipient.id ? aiData.recipient.id : tempRecipient : aiData.recipient.id
                 },
                 {
                     namespace: "custom",
