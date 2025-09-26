@@ -218,8 +218,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
             const shopifyAiData = productResult.data.product.aiData && productResult.data.product.aiData.value ? JSON.parse(productResult.data.product.aiData.value) : null;
 
-            const tempTitle: string = aiData && aiData.title ? aiData.title : product.sapTitle;
-
             const tempTone: string = productResult.data.product.tone ? productResult.data.product.tone.value : toneList[0];
             const tempLanguage: number = productResult.data.product.foulLanguage ? productResult.data.product.foulLanguage.value : 1;
             const tempSexual: number = productResult.data.product.sexualLevel ? productResult.data.product.sexualLevel.value : 1;
@@ -268,7 +266,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 {
                     namespace: "custom",
                     key: "recipient",
-                    value: shopifyAiData ? tempRecipient === shopifyAiData.recipient ? aiData.recipeint : tempRecipient : aiData.recipeint
+                    value: shopifyAiData ? tempRecipient === shopifyAiData.recipient.id ? aiData.recipeint.id : tempRecipient : aiData.recipeint.id
                 },
                 {
                     namespace: "custom",
@@ -327,18 +325,24 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
             }
 
-            let uploadTitle = productResult.data.product.title;
-            let uploadDescription = productResult.data.product.description;
-            let uploadMetaDescription = productResult.data.product.seo.description;
+            let uploadTitle = aiData && aiData.title ? aiData.title : product.sapTitle ? product.sapTitle : productResult.data.product.title;
+            let uploadDescription = aiData && aiData.description ? aiData.description : productResult.data.product.description ? productResult.data.product.description : "";
+            let uploadMetaDescription = aiData && aiData.metaDescription ? aiData.metaDescription : productResult.data.product.seo.description ? productResult.data.product.seo.description : "";
             if (shopifyAiData) {
                 if (productResult.data.product.title === shopifyAiData.title) {
-                    uploadTitle = tempTitle;
+                    uploadTitle = aiData && aiData.title ? aiData.title : shopifyAiData.title;
+                } else {
+                    uploadTitle = productResult.data.product.title;
                 }
                 if (productResult.data.product.description === shopifyAiData.description) {
                     uploadDescription = aiData && aiData.description ? aiData.description : shopifyAiData.description;
+                } else {
+                    uploadDescription = productResult.data.product.description;
                 }
                 if (productResult.data.product.seo.description === shopifyAiData.metaDescription) {
                     uploadMetaDescription = aiData && aiData.metaDescription ? aiData.metaDescription : shopifyAiData.metaDescription;
+                } else {
+                    uploadMetaDescription = productResult.data.product.descriptio;
                 }
             }
 
