@@ -234,17 +234,11 @@ export async function action({ request }: ActionFunctionArgs) {
                 const removedTags = shopifyAiData.keywords.filter((element: string) => productResult.data.product.tags.includes(element));
                 tags = aiData.keywords.filter((tag: string) => !removedTags.includes(tag));
                 aiJsonWBannedTags.keywords = aiData.keywords.concat(removedTags);
+            } else {
+                tags = aiData.keywords;
             }
 
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-            console.log(tags);
-            console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            console.log(aiJsonWBannedTags);
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-
-            /*const responsePrefix = await admin.graphql(
+            const responsePrefix = await admin.graphql(
                 `#graphql
                     query GetPrefix($id: ID!) {
                         metaobject(id: $id) {
@@ -261,9 +255,20 @@ export async function action({ request }: ActionFunctionArgs) {
 
             const resultPrefix = await responsePrefix.json();
 
-            tags = tags.slice(0, 249).concat(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`);
+            tags = tags.slice(0, 250);
+            if (!tags.includes(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`)) {
+                tags = tags.slice(0, 249).concat(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`);
+            }
 
-            const productMetafields: Metafield[] = [
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+            console.log(tags);
+            console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            console.log(aiJsonWBannedTags);
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+
+            /*const productMetafields: Metafield[] = [
                 {
                     namespace: "custom",
                     key: "tone",
