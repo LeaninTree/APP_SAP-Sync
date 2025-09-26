@@ -430,33 +430,10 @@ export async function action({ request }: ActionFunctionArgs) {
                     });
                 }
             }
-
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-            console.log({
-                product: {
-                            id: product.id,
-                            title: uploadTitle,
-                            descriptionHtml: uploadDescription,
-                            seo: {
-                                title: uploadTitle,
-                                description: uploadMetaDescription
-                            },
-                            status: 'ACTIVE',
-                            tags: tags,
-                            metafields: productMetafields
-                        }
-            })
-            console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            console.log(updateProductResult);
-            console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            console.log(updateMediaResult);
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
         }
     }
 
-    /*const getShopMetafieldsResponse = await admin.graphql(
+    const getShopMetafieldsResponse = await admin.graphql(
         `#graphql
             query ShopMetafields {
                 shop {
@@ -483,7 +460,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const getShopMetafieldsResult = await getShopMetafieldsResponse.json();
 
-    const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+    console.log(getShopMetafieldsResult.data);
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+
+    /*const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
     newITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
 
     const newProductStatus = [...JSON.parse(getShopMetafieldsResult.data.shop.productStatus.value)];
