@@ -266,7 +266,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 {
                     namespace: "custom",
                     key: "recipient",
-                    value: shopifyAiData ? tempRecipient === shopifyAiData.recipient.id ? aiData.recipeint.id : tempRecipient : aiData.recipeint.id
+                    value: shopifyAiData && shopifyAiData.recipient && shopifyAiData.recipient.id ? tempRecipient === shopifyAiData.recipient.id && aiData && aiData.recipeint && aiData.recipeint.id ? aiData.recipeint.id : tempRecipient : aiData.recipeint.id
                 },
                 {
                     namespace: "custom",
