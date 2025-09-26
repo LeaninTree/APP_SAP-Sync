@@ -217,17 +217,9 @@ export async function action({ request }: ActionFunctionArgs) {
                 message: "AI ANALYSIS | AI analysis has been completed."
             });
 
-            const shopifyAiData = JSON.parse(productResult.data.product.aiData.value);
+            const shopifyAiData = productResult.data.product.aiData && productResult.data.product.aiData.value ? JSON.parse(productResult.data.product.aiData.value) : null;
 
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-            console.log(aiData);
-            console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            console.log(shopifyAiData);
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-
-            /*const tempTitle: string = aiData && aiData.title ? aiData.title : product.sapTitle;
+            const tempTitle: string = aiData && aiData.title ? aiData.title : product.sapTitle;
 
             const tempTone: string = productResult.data.product.tone ? productResult.data.product.tone.value : toneList[0];
             const tempLanguage: number = productResult.data.product.foulLanguage ? productResult.data.product.foulLanguage.value : 1;
@@ -244,7 +236,15 @@ export async function action({ request }: ActionFunctionArgs) {
                 aiJsonWBannedTags.keywords = aiData.keywords.concat(removedTags);
             }
 
-            const responsePrefix = await admin.graphql(
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+            console.log(tags);
+            console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            console.log(aiJsonWBannedTags);
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+
+            /*const responsePrefix = await admin.graphql(
                 `#graphql
                     query GetPrefix($id: ID!) {
                         metaobject(id: $id) {
