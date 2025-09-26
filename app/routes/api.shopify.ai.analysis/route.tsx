@@ -297,8 +297,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
             const mediaDefinition: UploadMedia[] = [];
             console.log("ALT-TEXTS: ", aiData.altText);
+            console.log(aiData.altText.length)
             if (aiData && aiData.altText.length > 0) {
+                console.log("TEST1")
+                console.log(productResult.data.product.media.length)
+                console.log(productResult.data.product.media)
                 for (let i = 0; i < productResult.data.product.media.length; i++) {
+                    console.log("TEST2")
                     const segments = productResult.data.product.media[i].url.split('/');
                     let name = segments[segments.length - 1];
                     const paramsIndex = name.indexOf("?");
@@ -412,6 +417,12 @@ export async function action({ request }: ActionFunctionArgs) {
             );
 
             const updateProductResult = await updateProductResponse.json();
+
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
+            console.log(updateProductResult);
+            console.log("=====================================================================================================");
+            console.log("=====================================================================================================");
             
             if (updateProductResult.data.productUpdate.userErrors.length > 0) {
                 for (let i = 0; i < updateProductResult.data.productUpdate.userErrors.length; i++) {
