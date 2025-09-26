@@ -193,7 +193,7 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
                             fields: [
                                 {
                                     key: "name",
-                                    value: `For ${aiJson.recipient.gender} ${aiJson.recipient.group} ${aiJson.recipient.kid ? "Kids" : ""}`
+                                    value: `${aiJson.recipient.gender} ${aiJson.recipient.group} ${aiJson.recipient.kid ? "Kids" : ""}`
                                 },
                                 {
                                     key: "gendered",
