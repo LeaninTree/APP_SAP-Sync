@@ -204,7 +204,6 @@ export async function action({ request }: ActionFunctionArgs) {
         };
 
         const aiResponse = await runAIAnalysis(admin, product, toneList, genderedList, groupList);
-        console.log(aiResponse);
         if (JSON.parse(aiResponse).error) {
             ITErrors.push({
                         code: product.sku,
@@ -328,15 +327,30 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
             }
 
+            let uploadTitle = productResult.data.product.title;
+            let uploadDescription = productResult.data.product.description;
+            let uploadMetaDescription = productResult.data.product.seo.description;
+            if (shopifyAiData) {
+                if (productResult.data.product.title === shopifyAiData.title) {
+                    uploadTitle = tempTitle;
+                }
+                if (productResult.data.product.description === shopifyAiData.description) {
+                    uploadDescription = aiData && aiData.description ? aiData.description : shopifyAiData.description;
+                }
+                if (productResult.data.product.seo.description === shopifyAiData.metaDescription) {
+                    uploadMetaDescription = aiData && aiData.metaDescription ? aiData.metaDescription : shopifyAiData.metaDescription;
+                }
+            }
+
             console.log("=====================================================================================================");
             console.log("=====================================================================================================");
             console.log("PRODUCT: ", {
                             id: product.id,
-                            title: !shopifyAiData || productResult.data.product.title === shopifyAiData.title ? tempTitle : productResult.data.product.title,
-                            descriptionHtml: !shopifyAiData || productResult.data.product.description === shopifyAiData.description ? shopifyAiData.description : productResult.data.product.description,
+                            title: uploadTitle,
+                            descriptionHtml: uploadDescription,
                             seo: {
-                                title: !shopifyAiData || productResult.data.product.title === shopifyAiData.title ? tempTitle : productResult.data.product.title,
-                                description: !shopifyAiData || productResult.data.product.seo.description === shopifyAiData.metaDescription ? shopifyAiData.metaDescription : productResult.data.product.seo.description
+                                title: uploadTitle,
+                                description: uploadMetaDescription
                             },
                             status: 'ACTIVE',
                             tags: tags,
@@ -365,11 +379,11 @@ export async function action({ request }: ActionFunctionArgs) {
                     variables: {
                         product: {
                             id: product.id,
-                            title: !shopifyAiData || productResult.data.product.title === shopifyAiData.title ? tempTitle : productResult.data.product.title,
-                            descriptionHtml: !shopifyAiData || productResult.data.product.description === shopifyAiData.description ? shopifyAiData.description : productResult.data.product.description,
+                            title: uploadTitle,
+                            descriptionHtml: uploadDescription,
                             seo: {
-                                title: !shopifyAiData || productResult.data.product.title === shopifyAiData.title ? tempTitle : productResult.data.product.title,
-                                description: !shopifyAiData || productResult.data.product.seo.description === shopifyAiData.metaDescription ? shopifyAiData.metaDescription : productResult.data.product.seo.description
+                                title: uploadTitle,
+                                description: uploadMetaDescription
                             },
                             status: 'ACTIVE',
                             tags: tags,
