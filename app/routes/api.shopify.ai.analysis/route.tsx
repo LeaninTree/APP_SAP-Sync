@@ -261,7 +261,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 {
                     namespace: "custom",
                     key: "tone",
-                    value: shopifyAiData ? tempTone === shopifyAiData.tone ? aiData : tempTone : aiData.tone
+                    value: shopifyAiData ? tempTone === shopifyAiData.tone ? aiData.tone : tempTone : aiData.tone
                 },
                 {
                     namespace: "custom",
@@ -466,7 +466,7 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log("=====================================================================================================");
     console.log("=====================================================================================================");
 
-    /*const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
+    const newITErrors = [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)];
     newITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
 
     const newProductStatus = [...JSON.parse(getShopMetafieldsResult.data.shop.productStatus.value)];
@@ -478,7 +478,15 @@ export async function action({ request }: ActionFunctionArgs) {
     const tempBacklog = [...JSON.parse(getShopMetafieldsResult.data.shop.oldBacklog.value)];
     const newBacklog = tempBacklog.filter(value => !queue.includes(value));
 
-    const metafieldUpdateResponse = await admin.graphql(
+    console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    console.log("IT ERRORS: ", newITErrors);
+    console.log("STATUS: ", newProductStatus);
+    console.log("AI QUEUE: ", newQueue);
+    console.log("AI BACKLOG: ", newBacklog);
+    console.log("=====================================================================================================");
+    console.log("=====================================================================================================");
+
+    /*const metafieldUpdateResponse = await admin.graphql(
         `#graphql
             mutation MetafieldUpdates($metafields: [MetafieldsSetInput!]!) {
                 metafieldsSet(metafields: $metafields) {
