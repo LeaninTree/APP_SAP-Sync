@@ -296,21 +296,16 @@ export async function action({ request }: ActionFunctionArgs) {
             ];
 
             const mediaDefinition: UploadMedia[] = [];
-            console.log("ALT-TEXTS: ", aiData.altText);
-            console.log(aiData.altText.length)
             if (aiData && aiData.altText.length > 0) {
-                console.log("TEST1")
                 for (let i = 0; i < productResult.data.product.media.nodes.length; i++) {
-                    const segments = productResult.data.product.media.nodes[i].url.split('/');
+                    const segments = productResult.data.product.media.nodes[i].image.url.split('/');
                     let name = segments[segments.length - 1];
                     const paramsIndex = name.indexOf("?");
                     if (paramsIndex !== -1) {
                         name = name.substring(0, paramsIndex);
                     }
-                    console.log("MEDIA NAME:", name);
                     for (let j = 0; j < aiData.altText.length; j++) {
                         if (name === aiData.altText[j].name) {
-                            console.log("NAME MATCH")
                             if (shopifyAiData) {
                                 for (let k = 0; k < shopifyAiData.altText.length; k++) {
                                     if (name === shopifyAiData.altText[k].name) {
@@ -361,26 +356,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
             }
 
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-            console.log("PRODUCT: ", {
-                            id: product.id,
-                            title: uploadTitle,
-                            descriptionHtml: uploadDescription,
-                            seo: {
-                                title: uploadTitle,
-                                description: uploadMetaDescription
-                            },
-                            status: 'ACTIVE',
-                            tags: tags,
-                            metafields: productMetafields
-                        });
-            console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            console.log("MEDIA: ", mediaDefinition);
-            console.log("=====================================================================================================");
-            console.log("=====================================================================================================");
-
-            /*const updateProductResponse = await admin.graphql(
+            const updateProductResponse = await admin.graphql(
                 `#graphql
                     mutation UpdateProduct($product: ProductUpdateInput!, $media: [CreateMediaInput!]) {
                         productUpdate(product: $product, media: $media) {
@@ -428,11 +404,9 @@ export async function action({ request }: ActionFunctionArgs) {
                         message: "AI ANALYSIS - PRODUCT UPDATE ERROR"
                     })
                 }
-            }*/
+            }
         }
     }
-
-    //Check backlog for product
 
     /*const getShopMetafieldsResponse = await admin.graphql(
         `#graphql
