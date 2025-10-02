@@ -40,6 +40,16 @@ api_version = "2025-10"
     "created_at"
   ]
 
+  [[webhooks.subscriptions]]
+  topics = [ "metaobjects/update", "metaobjects/create" ]
+  uri = "/webhooks/shopify/channel/update"
+  filter = "type:sales_channels OR type:sales_channel_rule"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/update" ]
+  uri = "/webhooks/shopify/product/push"
+  filter = "status:active"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products, read_metaobjects, write_inventory, read_metaobject_definitions, write_files, read_locations, write_metaobjects, write_metaobject_definitions"

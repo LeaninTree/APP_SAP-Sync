@@ -1,13 +1,6 @@
-import { ActionFunctionArgs } from "@remix-run/node";
-import { authenticate } from "app/shopify.server";
+import { AdminApiContextWithoutRest } from "node_modules/@shopify/shopify-app-remix/dist/ts/server/clients";
 
-export async function action({ request }: ActionFunctionArgs) {
-    const { payload, admin } = await authenticate.webhook(request);
-
-    if (!admin) {
-        return new Response("Unauthorized", { status: 401 });
-    }
-
+export async function HandleImageUpdate(payload: any, admin: AdminApiContextWithoutRest) {
     const imagesUpdated = payload.media.filter((image: any) => {
         const updatedDate = new Date(image.created_at);
         const nowDate = new Date();

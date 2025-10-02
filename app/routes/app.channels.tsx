@@ -183,7 +183,7 @@ export async function loader({request}: LoaderFunctionArgs) {
     const brandResult = await brandResponse.json();
     const brandOptions = brandResult.data.metaobjectDefinitionByType.metaobjects.nodes.filter((metaobject: any) => metaobject.defined.value === "true").map((metaobject: any) => ({
         label: metaobject.name.value,
-        value: metaobject.handle
+        value: metaobject.name.value
     }));
 
     const typeResponse = await admin.graphql(
@@ -210,7 +210,7 @@ export async function loader({request}: LoaderFunctionArgs) {
     const typeResult = await typeResponse.json();
     const typeOptions = typeResult.data.metaobjectDefinitionByType.metaobjects.nodes.map((metaobject: any) => ({
         label: metaobject.name.value,
-        value: metaobject.handle
+        value: metaobject.name.value
     }));
 
     const assortmentResponse = await admin.graphql(
