@@ -45,7 +45,8 @@ enum ProductStatus {
 }
 
 export async function HandleProductUpdate(admin: AdminApiContextWithoutRest, productID: string) {
-    let ITErrors = [];
+    console.log(productID);
+    /*let ITErrors = [];
     let moreSalesChannels: boolean = true;
     let currentSalesChannelsCursor: string | null = null;
     const salesChannels: SalesChannels[] = [];
@@ -216,7 +217,7 @@ export async function HandleProductUpdate(admin: AdminApiContextWithoutRest, pro
             query getShopData {
                 shop {
                     id
-                    metafields(namespace: "product_list", first: 250) {
+                    metafields(first: 250) {
                         nodes {
                             namespace
                             key
@@ -333,7 +334,7 @@ export async function HandleProductUpdate(admin: AdminApiContextWithoutRest, pro
                             }
                         }
                     `;
-                    const productCheckResponse = await ExternalGraphql(channel.token, skuquery, "lt-d2c-shop-qa.myshopify.com");
+                    const productCheckResponse = await ExternalGraphql(channel.token, skuquery, "wi-d2c-shop-qa.myshopify.com");
                     if (typeof productCheckResponse === 'string') {
                         ITErrors.push(`[${product.sku} | ${channel.handle}] ${productCheckResponse}`);
                     }
@@ -347,7 +348,7 @@ export async function HandleProductUpdate(admin: AdminApiContextWithoutRest, pro
                                 }
                             }
                         `;
-                        const productCreateResponse = await ExternalGraphql(channel.token, productCreateQuery, "lt-d2c-shop-qa.myshopify.com");
+                        const productCreateResponse = await ExternalGraphql(channel.token, productCreateQuery, "wi-d2c-shop-qa.myshopify.com");
                         if (typeof productCreateResponse === 'string') {
                             ITErrors.push(`[${product.sku} | ${channel.handle}] ${productCreateResponse}`);
                         }
@@ -487,7 +488,7 @@ export async function HandleProductUpdate(admin: AdminApiContextWithoutRest, pro
         }
     }
 
-    //TODO: Upload ITErrors
+    //TODO: Upload ITErrors */
 
     return new Response("Ok", { status: 200 });
 }

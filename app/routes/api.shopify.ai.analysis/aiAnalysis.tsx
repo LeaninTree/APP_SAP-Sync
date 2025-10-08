@@ -63,78 +63,97 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
         });                            
     }
 
-    const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-            createUserContent(content)
-        ],
-        config: {
-            responseMimeType: "application/json",
-            responseJsonSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    title: {
-                        type: Type.STRING
-                    },
-                    description: {
-                        type: Type.STRING
-                    },
-                    metaDescription: {
-                        type: Type.STRING
-                    },
-                    keywords: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.STRING
-                        }
-                    },
-                    altText: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                name: {
-                                    type: Type.STRING
-                                },
-                                text: {
-                                    type: Type.STRING
-                                }
-                            }
-                        }
-                    },
-                    nudityLevel: {
-                        type: Type.INTEGER
-                    },
-                    politicalLevel: {
-                        type: Type.INTEGER
-                    },
-                    sexualLevel: {
-                        type: Type.INTEGER
-                    },
-                    foulLanguageLevel: {
-                        type: Type.INTEGER
-                    },
-                    tone: {
-                        type: Type.STRING
-                    },
-                    recipient: {
+    const MAX_RETRIES = 5;
+    let aiResponse = null
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+            aiResponse = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: [
+                    createUserContent(content)
+                ],
+                config: {
+                    responseMimeType: "application/json",
+                    responseJsonSchema: {
                         type: Type.OBJECT,
                         properties: {
-                            gender: {
+                            title: {
                                 type: Type.STRING
                             },
-                            group: {
+                            description: {
                                 type: Type.STRING
                             },
-                            kid: {
-                                type: Type.BOOLEAN
+                            metaDescription: {
+                                type: Type.STRING
+                            },
+                            keywords: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.STRING
+                                }
+                            },
+                            altText: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        name: {
+                                            type: Type.STRING
+                                        },
+                                        text: {
+                                            type: Type.STRING
+                                        }
+                                    }
+                                }
+                            },
+                            nudityLevel: {
+                                type: Type.INTEGER
+                            },
+                            politicalLevel: {
+                                type: Type.INTEGER
+                            },
+                            sexualLevel: {
+                                type: Type.INTEGER
+                            },
+                            foulLanguageLevel: {
+                                type: Type.INTEGER
+                            },
+                            tone: {
+                                type: Type.STRING
+                            },
+                            recipient: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    gender: {
+                                        type: Type.STRING
+                                    },
+                                    group: {
+                                        type: Type.STRING
+                                    },
+                                    kid: {
+                                        type: Type.BOOLEAN
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            });
+            break;
+        } catch (error) {
+            if (attempt === MAX_RETRIES - 1) {
+                return JSON.stringify({ error: `Gemini API call failed: ${error instanceof Error ? error.message : String(error)}` });
             }
+            const delay = Math.pow(2, attempt) * 1000;
+            console.warn(`Gemini API call failed (Attempt ${attempt + 1}). Retrying in ${delay / 1000}s...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
-    });
+    }
+
+    if (!aiResponse) {
+        return JSON.stringify({ error: "Failed to get AI response after maximum retries." });
+    }
 
     if (typeof aiResponse === "string") {
         return aiResponse;
