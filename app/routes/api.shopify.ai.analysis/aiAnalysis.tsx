@@ -64,9 +64,8 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
 
     const MAX_RETRIES = 5;
     let aiResponse = null
-    console.log("START ATTEMPTING");
+
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        console.log("ATTEMPT")
         try {
             aiResponse = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -150,7 +149,6 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
-    console.log("ATTEMPTS DONE")
 
     if (!aiResponse) {
         return JSON.stringify({ error: "Failed to get AI response after maximum retries." });
@@ -159,8 +157,6 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
     if (typeof aiResponse === "string") {
         return aiResponse;
     }
-
-    console.log("AI NO ERRORS")
 
     let aiJson = null;
 
@@ -247,8 +243,6 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
             }
         }
     }
-
-    console.log("AI RECIPIENT DONE")
 
     return JSON.stringify({
         title: aiJson.title,

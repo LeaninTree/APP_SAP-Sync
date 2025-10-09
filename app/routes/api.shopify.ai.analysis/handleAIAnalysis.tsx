@@ -9,7 +9,6 @@ interface UploadMedia {
 }
 
 export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payload: any) {
-    console.log("HANDLER ENTERED");
     const queue: string[] = JSON.parse(payload.properties.queue);
     let toneList: string[] = [];
     const toneListResponse = await admin.graphql(
@@ -37,7 +36,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
             }
         }
     }
-    console.log("TONE DONE");
 
     const genderedList: string[] = [];
     const groupList: string[] = [];
@@ -90,7 +88,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
             }
         }
     }
-    console.log("RECIPIENT DONE");
 
     const ITErrors: Error[] = [];
     const productStatus: Error[] = [];
@@ -166,7 +163,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
         );
 
         const productResult = await productResponse.json();
-        console.log("PRODUCT RESULT DONE");
 
         const media: Media[] = [];
         for (let i = 0; i < productResult.data.product.media.nodes.length; i++) {
@@ -185,16 +181,12 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
             id: queue[i],
             sku: productResult.data.product.variants.nodes[0].sku,
             productType:  productResult.data.product.productType,
-            occasion: productResult.data.product.occasion.value,
-            sapTitle: productResult.data.product.sapTitle.value,
+            occasion: productResult.data.product.occasion && productResult.data.product.occasion.value ? productResult.data.product.occasion.value : "",
+            sapTitle: productResult.data.product.sapTitle && productResult.data.product.sapTitle.value ? productResult.data.product.sapTitle.value : "",
             media: media
         };
 
-        console.log("AI READY");
-        console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-
         const aiResponse = await runAIAnalysis(admin, product, toneList, genderedList, groupList);
-        console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
         if (JSON.parse(aiResponse).error) {
             ITErrors.push({
                         code: product.sku,
@@ -202,7 +194,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
                     });
         } else {
             const aiData = JSON.parse(aiResponse);
-            console.log("AI DATA COLLECTED");
             productStatus.push({
                 code: product.sku,
                 message: "AI ANALYSIS | AI analysis has been completed."
@@ -226,7 +217,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
             } else {
                 tags = aiData.keywords;
             }
-            console.log("PREFIX HIT");
             const responsePrefix = await admin.graphql(
                 `#graphql
                     query GetPrefix($id: ID!) {
@@ -243,7 +233,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
             );
 
             const resultPrefix = await responsePrefix.json();
-            console.log("PREFIX RESULT");
             tags = tags.slice(0, 250);
             if (!tags.includes(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`)) {
                 tags = tags.slice(0, 249).concat(`${resultPrefix.data.metaobject.handle.toUpperCase()}${product.sku}`);
@@ -347,7 +336,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
                     uploadMetaDescription = productResult.data.product.descriptio;
                 }
             }
-            console.log("UPDATE PRODUCT HIT");
 
             const updateProductResponse = await admin.graphql(
                 `#graphql
@@ -382,7 +370,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
             );
 
             const updateProductResult = await updateProductResponse.json();
-            console.log("UPDATE PRODUCT RESULT");
             
             if (updateProductResult.data.productUpdate.userErrors.length > 0) {
                 for (let i = 0; i < updateProductResult.data.productUpdate.userErrors.length; i++) {
@@ -415,7 +402,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
             );
 
             const updateMediaResult = await updateMediaResponse.json();
-            console.log("UPDATE MEDIA RESULT");
 
             if (updateMediaResult.data.fileUpdate.userErrors.length > 0) {
                 for (let i = 0; i < updateMediaResult.data.fileUpdate.userErrors.length; i++) {
@@ -454,7 +440,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
     );
 
     const getShopMetafieldsResult = await getShopMetafieldsResponse.json();
-    console.log("SHOP METAFIELD RESULT");
 
     const newITErrors = getShopMetafieldsResult.data.shop.itErrors && getShopMetafieldsResult.data.shop.itErrors.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.itErrors.value)] : [];
     newITErrors.concat(ITErrors.map(error => `[${error.code}] ${error.message}`));
@@ -468,7 +453,6 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
     const tempBacklog = getShopMetafieldsResult.data.shop.oldBacklog && getShopMetafieldsResult.data.shop.oldBacklog.value ? [...JSON.parse(getShopMetafieldsResult.data.shop.oldBacklog.value)] : [];
     const newBacklog = tempBacklog.filter(value => !queue.includes(value));
 
-    console.log("SHOP METAFIELD UPDATE HIT");
     const metafieldUpdateResponse = await admin.graphql(
         `#graphql
             mutation MetafieldUpdates($metafields: [MetafieldsSetInput!]!) {
@@ -513,13 +497,12 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
     );
 
     const metafieldUpdateResult = await metafieldUpdateResponse.json();
-    console.log("SHOP METAFIELD UPDATE RESULT");
 
     if (metafieldUpdateResult.data.metafieldsSet.userErrors.length > 0) {
         for (let i = 0; i < metafieldUpdateResult.data.userErrors; i++) {
             console.log(`[${metafieldUpdateResult.data.userErrors[i].field}] ${metafieldUpdateResult.data.userErrors[i].message}`)
         }
     }
-    console.log("=====================================================================================================")
+
     return new Response("Ok", { status: 200 });
 }

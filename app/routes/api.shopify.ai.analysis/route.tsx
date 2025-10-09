@@ -20,9 +20,6 @@ export interface ShopifyProduct {
 
 export async function action({ request }: ActionFunctionArgs) {
     const { admin, payload} = await authenticate.flow(request);
-    
-    console.log("======================================================================");
-    console.log("ROUTE ENTERED");
 
     HandleAIAnalysis(admin, payload);
 
