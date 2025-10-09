@@ -50,7 +50,6 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
     const crudePrompt = `On a scale of 1 to 5, with 5 being the crudest rate the nudity, political divisiveness, sexual innuendo and foul language levels.`;
 
     const content: PartListUnion = [{text: `${typePrompt} ${recipientPrompt} ${tonePrompt} ${titlePrompt} ${desciptionPrompt} ${metaDescriptionPrompt} ${keywordsPrompt} ${altTextPrompt} ${crudePrompt}`}];
-    
     for (let i = 0; i < product.media.length; i++) {
             const response = await fetch(product.media[i].url);
             const imageArrayBuffer = await response.arrayBuffer();
@@ -65,8 +64,9 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
 
     const MAX_RETRIES = 5;
     let aiResponse = null
-
+    console.log("START ATTEMPTING");
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        console.log("ATTEMPT")
         try {
             aiResponse = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -150,6 +150,7 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
+    console.log("ATTEMPTS DONE")
 
     if (!aiResponse) {
         return JSON.stringify({ error: "Failed to get AI response after maximum retries." });
@@ -158,6 +159,8 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
     if (typeof aiResponse === "string") {
         return aiResponse;
     }
+
+    console.log("AI NO ERRORS")
 
     let aiJson = null;
 
@@ -244,6 +247,8 @@ export async function runAIAnalysis(admin: AdminApiContextWithoutRest, product: 
             }
         }
     }
+
+    console.log("AI RECIPIENT DONE")
 
     return JSON.stringify({
         title: aiJson.title,
