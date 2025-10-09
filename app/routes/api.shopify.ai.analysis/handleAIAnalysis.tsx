@@ -201,11 +201,11 @@ export async function HandleAIAnalysis(admin: AdminApiContextWithoutRest, payloa
 
             const shopifyAiData = productResult.data.product.aiData && productResult.data.product.aiData.value ? JSON.parse(productResult.data.product.aiData.value) : null;
 
-            const tempTone: string = productResult.data.product.tone ? productResult.data.product.tone.value : toneList[0];
-            const tempLanguage: number = productResult.data.product.foulLanguage ? productResult.data.product.foulLanguage.value : 1;
-            const tempSexual: number = productResult.data.product.sexualLevel ? productResult.data.product.sexualLevel.value : 1;
-            const tempPolitical: number = productResult.data.product.politicalLevel ? productResult.data.product.politicalLevel.value : 1;
-            const tempNudity: number = productResult.data.product.nudityLevel ? productResult.data.product.nudityLevel.value : 1;
+            const tempTone: string = productResult.data.product.tone?.value ?? toneList[0];
+            const tempLanguage: number = productResult.data.product.foulLanguage?.value ? Number(productResult.data.product.foulLanguage.value) : 1;
+            const tempSexual: number = productResult.data.product.sexualLevel?.value ? Number(productResult.data.product.sexualLevel.value) : 1;
+            const tempPolitical: number = productResult.data.product.politicalLevel?.value ? Number(productResult.data.product.politicalLevel.value) : 1;
+            const tempNudity: number = productResult.data.product.nudityLevel?.value ? Number(productResult.data.product.nudityLevel.value) : 1;
             const tempRecipient: string = productResult.data.product.recipient ? productResult.data.product.recipient.value : recipientListResult.data.metaobjectDefinitionByType.metaobjects.nodes[0].id;
 
             let tags: string[] = [];
